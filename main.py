@@ -1,1 +1,1 @@
-print('Hi, brodiaga')
+print('Hi, gay')
