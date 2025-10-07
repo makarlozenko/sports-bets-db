@@ -1,0 +1,55 @@
+1. Не будет ли проблемы насчёт бетов где статус ещё неизвестен. Ведь если дата наступит статус сам не поменяется.
+2. Проверить чтобы все фильтрации делал монгодб а не питон так как есть условие чтобы бы было если бы было много данных.
+3. Даты почему-то по другому отображаются и из-за этого фильтрации не работают по датам.
+
+
+################################Bets
+Фильтрации:
+Можно сортировать по статусу ставки
+/bets?status=won /bets?status=lost /bets?status=pending
+Можно сортировать матчи по названиям команды
+/bets?team=Vilnius%20FC
+Можно сортировать по интервалам дат но сейчас ворк ин прогрес
+
+Можно сортировать по возрастающей или убывающей по ставкам. коэфициентам. датам.
+/bets?sort_by=stake&ascending=false
+
+
+Добавить ставку
+{
+  "userId": "d86b5f978ef1d4c0d78134b4",
+  "userEmail": "arci.masiulis0@outlook.com",
+  "event": {
+    "team_1": "Kaunas Green",
+    "team_2": "Klaipeda Mariners",
+    "type": "league",
+    "date": "2025-10-13"
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Kaunas Green",
+    "odds": 2.29,
+    "stake": 50.51
+  }
+}
+Удаляется с помощью айди: /bets/id (Uzklausa = Delete)
+
+################################Users
+Можно фильтровать по имени. фамилии. балансу(интервалы тоже можно)
+/users?firstName=Edvinas&lastName=Masiulis&min_balance=1000&max_balance=2000
+Также по возрастающей и убывающей баланса
+/users?sort_by=balance&ascending=false
+
+Добавить юзера
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "phone": "+1234567890",
+  "email": "john.doe@example.com",
+  "birthDate": "1990-05-15",
+  "IBAN": "EE001122334455667788",
+  "balance": 500.75,
+  "nickname": "johnny"
+}
+
+Удалить http://127.0.0.1:5000/users/68e3f5adfef4d19e2273bcf2
