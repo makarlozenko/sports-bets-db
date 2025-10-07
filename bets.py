@@ -47,37 +47,56 @@ def register_bets_routes(app, db):
         sort_by = request.args.get("sort_by")
         ascending = request.args.get("ascending", "true").lower() == "true"
         team = request.args.get("team")
-        start_date = request.args.get("start_date")
-        end_date = request.args.get("end_date")
+        event_start = request.args.get("event_start_date")
+        event_end = request.args.get("event_end_date")
+        created_start = request.args.get("created_start_date")
+        created_end = request.args.get("created_end_date")
 
         query = {}
+
         if status:
             query["status"] = status
 
         if team:
-            query["$or"] = [{"event.team_1": team}, {"event.team_2": team}]
+            query["$or"] = [
+                {"event.team_1": team},
+                {"event.team_2": team}
+            ]
 
-        if start_date or end_date:
+        if event_start or event_end:
             date_query = {}
-            if start_date:
-                date_query["$gte"] = start_date
-            if end_date:
-                date_query["$lte"] = end_date
-            query["event.date.$date"] = date_query
+            try:
+                if event_start:
+                    date_query["$gte"] = datetime.strptime(event_start, "%Y-%m-%d")
+                if event_end:
+                    date_query["$lte"] = datetime.strptime(event_end, "%Y-%m-%d")
+                query["event.date"] = date_query
+            except ValueError:
+                return jsonify({"message": "Invalid event date format. Use YYYY-MM-DD"}), 400
+
+        if created_start or created_end:
+            created_query = {}
+            try:
+                if created_start:
+                    created_query["$gte"] = datetime.strptime(created_start, "%Y-%m-%d")
+                if created_end:
+                    created_query["$lte"] = datetime.strptime(created_end, "%Y-%m-%d")
+                query["bet.createdAt"] = created_query
+            except ValueError:
+                return jsonify({"message": "Invalid createdAt date format. Use YYYY-MM-DD"}), 400
 
         sort_field_map = {
             "stake": "bet.stake",
             "odds": "bet.odds",
-            "date": "event.date.$date"
+            "event_date": "event.date",
+            "createdAt": "bet.createdAt"
         }
-
         sort_field = sort_field_map.get(sort_by)
         sort_order = 1 if ascending else -1
 
+        cur = BETS.find(query)
         if sort_field:
-            cur = BETS.find(query).sort(sort_field, sort_order)
-        else:
-            cur = BETS.find(query)
+            cur = cur.sort(sort_field, sort_order)
 
         items = [ser(x) for x in cur]
         total = len(items)
@@ -121,8 +140,31 @@ def register_bets_routes(app, db):
             if "userId" in data and isinstance(data["userId"], str):
                 data["userId"] = ObjectId(data["userId"])
 
+            user_email = data.get("userEmail")
+            event = data.get("event", {})
+            team_1 = event.get("team_1")
+            team_2 = event.get("team_2")
+
+            if not user_email or not team_1 or not team_2:
+                return jsonify({
+                    "message": "Missing required fields (userEmail, event.team_1, or event.team_2)"
+                }), 400
+
+            existing_bet = BETS.find_one({
+                "userEmail": user_email,
+                "event.team_1": team_1,
+                "event.team_2": team_2
+            })
+
+            if existing_bet:
+                return jsonify({
+                    "message": "You have already placed a bet for this event.",
+                    "bet": ser(existing_bet)
+                }), 400
+
             res = BETS.insert_one(data)
             new_bet = BETS.find_one({"_id": res.inserted_id})
+
             return jsonify({
                 "message": "Bet added successfully",
                 "bet": ser(new_bet)
