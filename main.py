@@ -8,7 +8,6 @@ from bson import ObjectId
 
 app = Flask(__name__)
 
-# TAVO Atlas prisijungimas (kaip davei)
 client = MongoClient('mongodb+srv://arinatichonovskaja_db_user:Komanda@sportbet.wafmb2f.mongodb.net/?retryWrites=true&w=majority&appName=SportBet',
                      tlsCAFile=certifi.where())
 db = client.SportBET        # DB pavadinimas
@@ -35,12 +34,10 @@ def health():
 # LIST
 @app.get("/teams")
 def list_teams():
-    limit = min(int(request.args.get("limit", 20)), 200)
-    skip = max(int(request.args.get("skip", 0)), 0)
     cur = TEAMS.find({})
-    items = [ser(x) for x in cur.skip(skip).limit(limit)]
+    items = [ser(x) for x in cur]
     total = TEAMS.count_documents({})
-    return jsonify({"items": items, "total": total, "limit": limit, "skip": skip})
+    return jsonify({"items": items, "total": total})
 
 # CREATE
 @app.post("/teams")
