@@ -91,8 +91,29 @@ def register_users_routes(app, db):
     def create_user():
         try:
             data = request.get_json(silent=True) or {}
+
+            email = data.get("email")
+            nickname = data.get("nickname")
+            phone = data.get("phone")
+            iban = data.get("IBAN")
+
+            duplicate_check = USERS.find_one({
+                "$or": [
+                    {"email": email},
+                    {"nickname": nickname},
+                    {"phone": phone},
+                    {"IBAN": iban}
+                ]
+            })
+
+            if duplicate_check:
+                return jsonify({
+                    "message": "User with the same email, nickname, phone number, or IBAN already exists."
+                }), 400
+
             if "balance" in data:
                 data["balance"] = Decimal128(str(data["balance"]))
+
             if "birthDate" in data:
                 try:
                     data["birthDate"] = {"$date": datetime.strptime(data["birthDate"], "%Y-%m-%d")}
@@ -101,9 +122,17 @@ def register_users_routes(app, db):
 
             res = USERS.insert_one(data)
             new_user = USERS.find_one({"_id": res.inserted_id})
-            return jsonify({"message": "User added successfully", "user": ser(new_user)}), 201
+
+            return jsonify({
+                "message": "User added successfully",
+                "user": ser(new_user)
+            }), 201
+
         except Exception as e:
-            return jsonify({"message": "Failed to add user", "error": str(e)}), 400
+            return jsonify({
+                "message": "Failed to add user",
+                "error": str(e)
+            }), 400
 
     @app.delete("/users/<id>")
     def delete_user(id):
