@@ -12,6 +12,9 @@ client = MongoClient('mongodb+srv://arinatichonovskaja_db_user:Komanda@sportbet.
                      tlsCAFile=certifi.where())
 db = client.SportBET        # DB pavadinimas
 
+from matches import register_matches_routes
+register_matches_routes(app, db)
+
 from teams import register_teams_routes
 register_teams_routes(app, db)
 

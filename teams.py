@@ -38,12 +38,45 @@ def register_teams_routes(app, db):
     # CREATE
     @app.post("/teams")
     def create_team():
-        data = request.get_json(silent=True) or {}
-        now = datetime.utcnow()
-        data.setdefault("created_at", now)
-        data.setdefault("updated_at", now)
-        res = TEAMS.insert_one(data)
-        return jsonify(ser(TEAMS.find_one({"_id": res.inserted_id}))), 201
+        """Add a new team (prevent duplicates by teamName + sport)."""
+        try:
+            data = request.get_json(silent=True) or {}
+            now = datetime.utcnow()
+            data.setdefault("created_at", now)
+            data.setdefault("updated_at", now)
+
+            team_name = data.get("teamName")
+            sport = data.get("sport")
+
+            # --- Validate required fields ---
+            if not team_name or not sport:
+                return jsonify({"error": "Missing required fields: teamName and sport"}), 400
+
+            # --- Check for duplicates ---
+            duplicate = TEAMS.find_one({
+                "teamName": {"$regex": f"^{team_name}$", "$options": "i"},
+                "sport": {"$regex": f"^{sport}$", "$options": "i"}
+            })
+
+            if duplicate:
+                return jsonify({
+                    "error": f"Team '{team_name}' already exists for sport '{sport}'",
+                    "existing_team": ser(duplicate)
+                }), 409  # Conflict
+
+            # --- Insert new team if unique ---
+            res = TEAMS.insert_one(data)
+            new_team = TEAMS.find_one({"_id": res.inserted_id})
+            return jsonify({
+                "message": "Team added successfully",
+                "team": ser(new_team)
+            }), 201
+
+        except Exception as e:
+            return jsonify({
+                "error": "Failed to add team",
+                "details": str(e)
+            }), 400
 
     # READ (by id)
     @app.get("/teams/<id>")
