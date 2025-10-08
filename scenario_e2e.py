@@ -29,9 +29,27 @@ MATCH_DATE = "2025-10-08"  # YYYY-MM-DD
 
 # Example match payload. Adjust keys to your API schema if needed.
 match_payload = {
-    "team_1": TEAM_1,
-    "team_2": TEAM_2,
-    "date": MATCH_DATE,
+  "matchType": "league",
+  "sport": "football",
+  "kada": MATCH_DATE,
+  "komanda1": {
+    "pavadinimas": TEAM_1,
+    "result": {
+      "status": "won",
+      "goalsFor": 2,
+      "goalsAgainst": 1,
+      "cards": {"red": 0, "yellow": 2}
+    }
+  },
+  "komanda2": {
+    "pavadinimas": TEAM_2,
+    "rezultatai": {
+      "status": "lost",
+      "goalsFor": 1,
+      "goalsAgainst": 2,
+      "cards": {"red": 0, "yellow": 1}
+    }
+  }
 }
 
 # Example bet payload (for the same user & same event as the match)
