@@ -1,4 +1,4 @@
-# Sports Bets DB — README
+# Sports Bets DB 
 
 MongoDB Atlas + Flask REST API for a simple sports betting system.
 **All filtering/sorting is done by MongoDB (server-side), not Python.**
