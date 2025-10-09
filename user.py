@@ -87,9 +87,6 @@ def register_users_routes(app, db):
             return jsonify({"error": "User not found"}), 404
         return jsonify({"user": ser(user)})
 
-    from flask import request, jsonify
-    from bson.decimal128 import Decimal128
-    from datetime import datetime
     import re
 
     EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
