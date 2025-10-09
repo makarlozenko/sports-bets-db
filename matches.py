@@ -43,7 +43,7 @@ def register_matches_routes(app, db):
                 date_query["$gte"] = date_from
             if date_to:
                 date_query["$lte"] = date_to
-            query["kada"] = date_query
+            query["date"] = date_query
 
         cur = MATCHES.find(query)
         items = [ser(x) for x in cur]
@@ -73,19 +73,19 @@ def register_matches_routes(app, db):
             # --- duplicate check ---
             sport = data.get("sport")
             match_type = data.get("matchType")
-            kada = data.get("kada")
-            komanda1 = data.get("komanda1", {}).get("pavadinimas")
-            komanda2 = data.get("komanda2", {}).get("pavadinimas")
+            date = data.get("date")
+            comand1 = data.get("comand1", {}).get("name")
+            comand2 = data.get("comand2", {}).get("name")
 
-            if not all([sport, match_type, kada, komanda1, komanda2]):
+            if not all([sport, match_type, date, comand1, comand2]):
                 return jsonify({"error": "Missing required match fields"}), 400
 
             duplicate = MATCHES.find_one({
                 "sport": sport,
                 "matchType": match_type,
-                "kada": kada,
-                "komanda1.pavadinimas": komanda1,
-                "komanda2.pavadinimas": komanda2
+                "date": date,
+                "comand1.name": comand1,
+                "comand2.name": comand2
             })
 
             if duplicate:
@@ -144,8 +144,8 @@ def register_matches_routes(app, db):
             query["sport"] = sport
         if team:
             query["$or"] = [
-                {"komanda1.pavadinimas": {"$regex": team, "$options": "i"}},
-                {"komanda2.pavadinimas": {"$regex": team, "$options": "i"}}
+                {"comand1.name": {"$regex": team, "$options": "i"}},
+                {"comand2.name": {"$regex": team, "$options": "i"}}
             ]
         if date_from or date_to:
             date_query = {}
@@ -153,7 +153,7 @@ def register_matches_routes(app, db):
                 date_query["$gte"] = date_from
             if date_to:
                 date_query["$lte"] = date_to
-            query["kada"] = date_query
+            query["date"] = date_query
 
         cur = MATCHES.find(query)
         items = [ser(x) for x in cur]
@@ -165,9 +165,9 @@ def register_matches_routes(app, db):
     def reorder_matches():
         """
         Sort matches by date or sport.
-        Example: /matches/reorder?sort_by=kada&ascending=false
+        Example: /matches/reorder?sort_by=date&ascending=false
         """
-        sort_by = request.args.get("sort_by", "kada")
+        sort_by = request.args.get("sort_by", "date")
         ascending = request.args.get("ascending", "true").lower() == "true"
         order = 1 if ascending else -1
 
