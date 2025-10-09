@@ -143,3 +143,22 @@ def register_users_routes(app, db):
         if not res.deleted_count:
             return jsonify({"error": "User not found"}), 404
         return jsonify({"deleted": True, "_id": id})
+
+    @app.post("/users/update_balance")
+    def update_user_balance():
+        data = request.get_json(silent=True) or {}
+        user_id = data.get("userId")
+        new_balance = data.get("balance")
+
+        if not user_id or new_balance is None:
+            return jsonify({"error": "Missing userId or balance"}), 400
+
+        oid = to_oid(user_id)
+        if not oid:
+            return jsonify({"error": "Invalid userId"}), 400
+
+        res = USERS.update_one({"_id": oid}, {"$set": {"balance": Decimal128(str(new_balance))}})
+        if res.modified_count == 0:
+            return jsonify({"error": "No user updated"}), 404
+
+        return jsonify({"message": "User balance updated", "userId": user_id, "balance": float(new_balance)})
