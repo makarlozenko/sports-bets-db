@@ -87,39 +87,97 @@ def register_users_routes(app, db):
             return jsonify({"error": "User not found"}), 404
         return jsonify({"user": ser(user)})
 
+    from flask import request, jsonify
+    from bson.decimal128 import Decimal128
+    from datetime import datetime
+    import re
+
+    EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    PHONE_RE = re.compile(r"^\+?\d{7,20}$")
+    IBAN_RE = re.compile(r"^[A-Z0-9]{15,34}$")
+
+    REQUIRED_FIELDS = ["email", "nickname", "firstName", "lastName", "phone", "IBAN"]
+
+    def norm_email(s):
+        return (s or "").strip().lower()
+
+    def norm_nickname(s):
+        return (s or "").strip()
+
+    def norm_phone(s):
+        # paliekam tik + ir skaitmenis
+        s = (s or "").strip().replace(" ", "").replace("-", "")
+        if s.startswith("00"):
+            s = "+" + s[2:]
+        return s
+
+    def norm_iban(s):
+        return (s or "").replace(" ", "").upper()
+
     @app.post("/users")
     def create_user():
         try:
-            data = request.get_json(silent=True) or {}
+            raw = request.get_json(silent=True) or {}
+            data = {}
 
-            email = data.get("email")
-            nickname = data.get("nickname")
-            phone = data.get("phone")
-            iban = data.get("IBAN")
+            # 1) paimame laukus ir normalizuojame
+            data["email"] = norm_email(raw.get("email"))
+            data["nickname"] = norm_nickname(raw.get("nickname"))
+            data["firstName"] = (raw.get("firstName") or "").strip()
+            data["lastName"] = (raw.get("lastName") or "").strip()
+            data["phone"] = norm_phone(raw.get("phone"))
+            data["IBAN"] = norm_iban(raw.get("IBAN"))
 
-            duplicate_check = USERS.find_one({
-                "$or": [
-                    {"email": email},
-                    {"nickname": nickname},
-                    {"phone": phone},
-                    {"IBAN": iban}
-                ]
-            })
-
-            if duplicate_check:
+            # 2) patikrinam privalomus laukus
+            missing = [f for f in REQUIRED_FIELDS if not data.get(f)]
+            if missing:
                 return jsonify({
-                    "message": "User with the same email, nickname, phone number, or IBAN already exists."
+                    "message": "Missing required fields.",
+                    "missing": missing
                 }), 400
 
-            if "balance" in data:
-                data["balance"] = Decimal128(str(data["balance"]))
+            # 3) formatų validacija
+            errors = {}
+            if not EMAIL_RE.match(data["email"]):
+                errors["email"] = "Invalid email format."
+            if not PHONE_RE.match(data["phone"]):
+                errors["phone"] = "Invalid phone format. Use international format (e.g., +370...)."
+            if not IBAN_RE.match(data["IBAN"]):
+                errors["IBAN"] = "Invalid IBAN format."
+            if errors:
+                return jsonify({"message": "Validation error.", "errors": errors}), 400
 
-            if "birthDate" in data:
+            # 4) dublikato patikra pagal pateiktus laukus
+            or_clauses = []
+            for key in ["email", "nickname", "phone", "IBAN"]:
+                if data.get(key):
+                    or_clauses.append({key: data[key]})
+            if or_clauses:
+                duplicate = USERS.find_one({"$or": or_clauses})
+                if duplicate:
+                    return jsonify({
+                        "message": "User with the same email, nickname, phone number, or IBAN already exists."
+                    }), 400
+
+            # 5) papildomi laukai
+            # balance → Decimal128 (jei pateiktas)
+            if "balance" in raw and raw["balance"] is not None:
                 try:
-                    data["birthDate"] = {"$date": datetime.strptime(data["birthDate"], "%Y-%m-%d")}
+                    data["balance"] = Decimal128(str(raw["balance"]))
                 except Exception:
-                    return jsonify({"error": "Invalid birthDate format. Use YYYY-MM-DD"}), 400
+                    return jsonify({"message": "Invalid balance value."}), 400
 
+            # birthDate → datetime (YYYY-MM-DD)
+            if "birthDate" in raw and raw["birthDate"]:
+                try:
+                    data["birthDate"] = datetime.strptime(raw["birthDate"], "%Y-%m-%d")
+                except Exception:
+                    return jsonify({"message": "Invalid birthDate format. Use YYYY-MM-DD."}), 400
+
+            # saugokime sukūrimo laiką
+            data.setdefault("createdAt", datetime.utcnow())
+
+            # 6) įrašymas
             res = USERS.insert_one(data)
             new_user = USERS.find_one({"_id": res.inserted_id})
 
