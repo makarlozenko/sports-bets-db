@@ -171,7 +171,7 @@ DELETE /matches/6720f12bf7b0d4ab327a88f4
 
 | Parameter | Type | Description |
 |------------|------|--------------|
-| `sport` | string | Filter by sport (e.g. football, krepsinis) |
+| `sport` | string | Filter by sport (e.g. football, basketball) |
 | `team` | string | Filter by team name (partially matches) |
 | `from` | date | Start date (YYYY-MM-DD) |
 | `to` | date | End date (YYYY-MM-DD) |
