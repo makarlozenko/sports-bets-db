@@ -40,9 +40,9 @@ Returns database connection info.
 {
   "matchType": "league",
   "sport": "football",
-  "kada": "2025-09-05",
-  "komanda1": {
-    "pavadinimas": "Vilnius FC",
+  "date": "2025-09-05",
+  "comand1": {
+    "name": "Vilnius FC",
     "result": {
       "status": "won",
       "goalsFor": 2,
@@ -50,9 +50,9 @@ Returns database connection info.
       "cards": {"red": 0, "yellow": 2}
     }
   },
-  "komanda2": {
-    "pavadinimas": "Kaunas United",
-    "rezultatai": {
+  "comand2": {
+    "name": "Kaunas United",
+    "result": {
       "status": "lost",
       "goalsFor": 1,
       "goalsAgainst": 2,
@@ -70,7 +70,7 @@ Returns database connection info.
     "_id": "6720f12bf7b0d4ab327a88f4",
     "sport": "football",
     "matchType": "league",
-    "kada": "2025-09-05"
+    "date": "2025-09-05"
   }
 }
 ```
@@ -118,7 +118,7 @@ GET /matches/6720f12bf7b0d4ab327a88f4
   "_id": "6720f12bf7b0d4ab327a88f4",
   "sport": "football",
   "matchType": "league",
-  "kada": "2025-09-05"
+  "date": "2025-09-05"
 }
 ```
 

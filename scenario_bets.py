@@ -36,7 +36,6 @@ def get_user_by_id(user_id):
 
 def update_bet_status(bet_id, new_status):
     url = f"{BASE_URL}/bets/{bet_id}"
-    # Используем PATCH для обновления статуса
     resp = requests.patch(url, json={"status": new_status}, timeout=30)
     if resp.status_code not in (200, 204):
         print(f"⚠️ PATCH failed for bet {bet_id}: {resp.status_code}, {resp.text}")
@@ -44,14 +43,13 @@ def update_bet_status(bet_id, new_status):
 
 def update_user_balance(user_id, new_balance):
     url = f"{BASE_URL}/users/{user_id}"
-    # Используем PATCH для обновления баланса
     resp = requests.patch(url, json={"balance": new_balance}, timeout=30)
     if resp.status_code not in (200, 204):
         print(f"⚠️ PATCH failed for user {user_id}: {resp.status_code}, {resp.text}")
     return get_json(resp)
 
 def parse_date(d):
-    """Пробуем разные форматы даты."""
+    """Different formats of dates"""
     for fmt in ("%a, %d %b %Y %H:%M:%S %Z", "%Y-%m-%d"):
         try:
             return datetime.strptime(d, fmt)
@@ -75,7 +73,7 @@ def find_match_for_bet(bet, matches):
 
 def get_match_result(match):
     """
-    Возвращает победителя и счёт матча
+    Returns winner and match score
     """
     t1 = match["comand1"]["name"]
     t2 = match["comand2"]["name"]
@@ -112,13 +110,13 @@ def main():
             continue
 
         if match_date > today:
-            # Матч ещё не сыгран
+            #Match not played yet
             continue
 
-        # Получаем результат
+        # Getting result
         winner, score = get_match_result(match)
 
-        # Определяем статус ставки
+        # Determining status of bet
         status = "lost"
         if bet["bet"]["choice"] == "winner":
             if bet["bet"].get("team") == winner:
@@ -130,11 +128,11 @@ def main():
             if (bet_score.get("team_1") == score[0] and bet_score.get("team_2") == score[1]):
                 status = "won"
 
-        # Обновляем ставку через PATCH
+        # Updating bet through patch
         update_bet_status(bet["_id"], status)
         print(f"✅ Bet {bet['_id']} updated -> {status}")
 
-        # Обновляем баланс пользователя через userId
+        # Updating balance through userId
         user_id = bet.get("userId")
         user = get_user_by_id(user_id)
         if not user:
