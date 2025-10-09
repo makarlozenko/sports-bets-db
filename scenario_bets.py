@@ -3,7 +3,7 @@
 Auto-settle bets when match has finished:
 - Compares user's choice with actual match result (score or team)
 - Updates bet status (pending -> won/lose)
-- Updates user balance accordingly
+- Updates user balance accordingly.
 """
 
 import sys
