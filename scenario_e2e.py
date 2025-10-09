@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 import requests
 
 # ========= CONFIG =========
-BASE_URL = "http://127.0.0.1:5050"
+BASE_URL = "http://127.0.0.1:5000"
 USER_EMAIL = "aurimas.mikalauskas14@gmail.com"  # <-- CHANGE to an existing user in your DB
 
 # We'll keep teams/date consistent between match and bet
