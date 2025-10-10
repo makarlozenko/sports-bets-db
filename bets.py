@@ -262,21 +262,24 @@ def register_bets_routes(app, db):
         return jsonify({"items": items, "total": len(items)})
 
     # ---------- CREATE ----------
+    VALID_STATUSES = {"pending", "won", "lost"}
+
     @app.post("/bets")
     def create_bet():
         try:
             payload = request.get_json(silent=True) or {}
 
             user_email = (payload.get("userEmail") or "").strip().lower()
-            user_id    = payload.get("userId")
-            event      = payload.get("event") or {}
-            bet        = payload.get("bet") or {}
+            user_id = payload.get("userId")
+            event = payload.get("event") or {}
+            bet = payload.get("bet") or {}
 
             team_1 = _norm_name(event.get("team_1"))
             team_2 = _norm_name(event.get("team_2"))
             event_date_raw = event.get("date")
             event_dt = _parse_event_date(event_date_raw)
 
+            # --- privalomi laukai ---
             missing = []
             if not user_email: missing.append("userEmail")
             if not team_1:     missing.append("event.team_1")
@@ -286,28 +289,32 @@ def register_bets_routes(app, db):
             if missing:
                 return jsonify({"message": "Missing required fields,", "missing": missing}), 400
 
+            # userId -> ObjectId
             if user_id and isinstance(user_id, str):
                 try:
                     user_id = ObjectId(user_id)
                 except Exception:
                     return jsonify({"message": "Invalid userId format"}), 400
 
+            # --- choice validacija ---
             choice = bet.get("choice")
             if choice not in VALID_CHOICES:
                 return jsonify({"message": "Invalid bet.choice", "allowed": list(VALID_CHOICES)}), 400
 
+            # --- stake/odds tipai ir ribos ---
             try:
                 stake = float(bet.get("stake", 0))
-                odds  = float(bet.get("odds", 0))
+                odds = float(bet.get("odds", 0))
             except Exception:
                 return jsonify({"message": "Invalid stake/odds types"}), 400
             if stake <= 0: return jsonify({"message": "stake must be > 0"}), 400
-            if odds  <= 1: return jsonify({"message": "odds must be >= 1"}), 400
+            if odds <= 1: return jsonify({"message": "odds must be >= 1"}), 400
 
+            # --- choice-specifinės validacijos ---
             if choice == "winner":
                 pick_team = _norm_name(bet.get("team"))
                 if not pick_team:
-                    return jsonify({"message": "For choice= 'winner' you must provide bet.team"}), 400
+                    return jsonify({"message": "For choice='winner' you must provide bet.team"}), 400
 
             if choice == "score":
                 score = bet.get("score") or {}
@@ -315,16 +322,27 @@ def register_bets_routes(app, db):
                     s1 = int(score.get("team_1"))
                     s2 = int(score.get("team_2"))
                 except Exception:
-                    return jsonify({"message": "For choice='score' you must provide an integer score.team_1 and score.team_2"}), 400
+                    return jsonify({
+                                       "message": "For choice='score' you must provide an integer score.team_1 and score.team_2"}), 400
                 if s1 < 0 or s2 < 0:
                     return jsonify({"message": "score values must be >= 0"}), 400
 
-            # Match lookup (Date + String)
+            # --- status (pasirenkamas; default 'pending') ---
+            status_in = (payload.get("status") or "").strip().lower()
+            if not status_in:
+                status_in = "pending"
+            elif status_in not in VALID_STATUSES:
+                return jsonify({
+                    "message": "Invalid status",
+                    "allowed": sorted(list(VALID_STATUSES))
+                }), 400
+
+            # --- Match lookup (Date + String) ---
             day_start_aware = datetime(event_dt.year, event_dt.month, event_dt.day, tzinfo=timezone.utc)
-            day_end_aware   = day_start_aware + timedelta(days=1)
+            day_end_aware = day_start_aware + timedelta(days=1)
             day_start_nv = day_start_aware.replace(tzinfo=None)
-            day_end_nv   = day_end_aware.replace(tzinfo=None)
-            eq_date_str  = event_date_raw.strip() if isinstance(event_date_raw, str) else None
+            day_end_nv = day_end_aware.replace(tzinfo=None)
+            eq_date_str = event_date_raw.strip() if isinstance(event_date_raw, str) else None
 
             match_query_or = [
                 {"comand1.name": team_1, "comand2.name": team_2, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
@@ -340,7 +358,7 @@ def register_bets_routes(app, db):
             if not match_doc:
                 return jsonify({"message": "No such match has been found for given teams and date."}), 400
 
-            # Duplicate (Date + String)
+            # --- Duplicate (Date + String) ---
             dup_or = [
                 {"event.team_1": team_1, "event.team_2": team_2},
                 {"event.team_1": team_2, "event.team_2": team_1},
@@ -360,10 +378,13 @@ def register_bets_routes(app, db):
                 })
             duplicate = BETS.find_one({"$or": dup_query_or})
             if duplicate:
-                return jsonify({"message": "Duplicate bet: you have already placed this type of bet for these teams on this date."}), 400
+                return jsonify({
+                                   "message": "Duplicate bet: you have already placed this type of bet for these teams on this date."}), 400
 
+            # --- saugojimui paruošta data ---
             stored_event_date = _storage_date(event_date_raw, event_dt)
 
+            # --- dokumento konstravimas ---
             doc = {
                 "userEmail": user_email,
                 "userId": user_id,
@@ -373,8 +394,8 @@ def register_bets_routes(app, db):
                     "type": (event.get("type") or "").strip(),
                     "date": stored_event_date,
                 },
-                "bet": { **bet, "odds": float(odds), "stake": float(stake) },
-                "status": "pending",
+                "bet": {**bet, "odds": float(odds), "stake": float(stake)},
+                "status": status_in,  # <-- dabar galima perduoti; jei nieko – 'pending'
                 "createdAt": datetime.utcnow(),
             }
 
