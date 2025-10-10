@@ -1,6 +1,3 @@
-Got it — here’s a clean, **GitHub-ready English README** you can drop straight into `README.md`.
-
----
 
 # Sports Bets API
 
@@ -9,32 +6,8 @@ A simple REST API for managing users and bets for sports matches.
 **Base URL**
 
 ```
-http://127.0.0.1:5050
+http://127.0.0.1:5000
 ```
-
----
-
-## Table of Contents
-
-* [Users](#users)
-
-  * [List users](#list-users)
-  * [Filtering](#filtering)
-  * [Sorting](#sorting)
-  * [Create a user](#create-a-user)
-  * [Delete a user](#delete-a-user)
-* [Bets](#bets)
-
-  * [List bets](#list-bets)
-  * [Filtering](#filtering-1)
-  * [Sorting](#sorting-1)
-  * [Aggregations](#aggregations)
-  * [Create a bet](#create-a-bet)
-  * [Delete a bet](#delete-a-bet)
-* [Date Notes](#date-notes)
-* [Common Status Codes](#common-status-codes)
-
----
 
 ## Users
 
