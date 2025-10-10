@@ -207,14 +207,14 @@ GET /matches/filter?sport=football&team=Vilnius&from=2025-09-01
 
 **Example:**
 ```
-GET /matches/reorder?sort_by=kada&ascending=false
+GET /matches/reorder?sort_by=date&ascending=false
 ```
 
 **Response:**
 ```json
 [
-  {"sport": "football", "kada": "2025-10-17"},
-  {"sport": "football", "kada": "2025-09-29"}
+  {"sport": "football", "date": "2025-10-17"},
+  {"sport": "football", "date": "2025-09-29"}
 ]
 ```
 
@@ -250,7 +250,4 @@ Then open:
 http://127.0.0.1:5000/matches
 ```
 
----
 
-**Author:** _Sports BET Project — University Exercise_  
-**Module:** Matches (Part of “Team ir Matches”)

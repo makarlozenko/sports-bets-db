@@ -1,69 +1,178 @@
-# Sports Bets DB 
 
-MongoDB Atlas + Flask REST API for a simple sports betting system.
-**All filtering/sorting is done by MongoDB (server-side), not Python.**
+# Sports Bets API
 
-* **Collections:** `users`, `teams`, `matches`, `bets`
-* **Base URL (dev):** `http://127.0.0.1:5050` *(adjust if you run on another port; some examples below show `:5000`—replace accordingly)*
+A simple REST API for managing users and bets for sports matches.
+
+**Base URL**
+
+```
+http://127.0.0.1:5000
+```
+
+## Users
+
+### List users
+
+```
+GET /users
+```
+
+**Example**
+
+```http
+GET http://127.0.0.1:5050/users
+```
+
+### Filtering
+
+Filter by first/last name (case-insensitive, partial) and balance range.
+
+```http
+GET http://127.0.0.1:5050/users?firstName=Edvinas&lastName=Masiulis&min_balance=1000&max_balance=2000
+```
+
+**Query params**
+
+* `firstName` – partial match (case-insensitive)
+* `lastName` – partial match (case-insensitive)
+* `min_balance`, `max_balance` – numeric range (float)
+
+### Sorting
+
+```
+GET /users?sort_by=<field>&ascending=<bool>
+```
+
+**Allowed values**
+
+* `sort_by`: `balance | firstName | lastName`
+* `ascending`: `true | false` (also accepts `1 | yes | y`)
+
+**Example**
+
+```http
+GET http://127.0.0.1:5050/users?sort_by=balance&ascending=false
+```
+
+### Create a user
+
+```
+POST /users
+Content-Type: application/json
+```
+
+**Body**
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "phone": "+1234567890",
+  "email": "john.doe@example.com",
+  "birthDate": "1990-05-15",
+  "IBAN": "EE001122334455667788",
+  "balance": 500.75,
+  "nickname": "johnny"
+}
+```
+
+> Required fields: `email`, `nickname`, `firstName`, `lastName`, `phone`, `IBAN`.
+> `balance` is optional; stored as Decimal internally.
+
+### Delete a user
+
+```
+DELETE /users/<id>
+```
+
+**Example**
+
+```http
+DELETE http://127.0.0.1:5050/users/68e3f5adfef4d19e2273bcf2
+```
 
 ---
 
 ## Bets
 
-### List & Filter
+### List bets
 
-`GET /bets` with query params (all filters are **server-side** via MongoDB):
+```
+GET /bets
+```
 
-* **By status**
+**Example**
 
-  * `/bets?status=won`
-  * `/bets?status=lost`
-  * `/bets?status=pending`
+```http
+GET http://127.0.0.1:5050/bets
+```
 
-* **By team name** (matches if team appears in the event)
+### Filtering
 
-  * `/bets?team=Vilnius%20FC`
+**Query params**
 
-* **By date intervals** (event date and/or bet creation date)
+* `status` — `pending | won | lost`
+* `team` — exact team name (case-insensitive)
+* `event_start_date`, `event_end_date` — event (match) date range, **YYYY-MM-DD**
+* `created_start_date`, `created_end_date` — creation date range (checks both `createdAt` and `bet.createdAt`), **YYYY-MM-DD**
+* `limit` — page size (default 100, max 1000)
+* `skip` — offset for pagination
 
-  * **Combined:**
+**Examples**
 
-    ```
-    /bets?event_start_date=2025-10-01&event_end_date=2025-10-20&created_start_date=2025-09-01&created_end_date=2025-09-30
-    ```
-  * **Event date only:**
+```http
+# All pending, sort by stake desc, limit 50
+GET http://127.0.0.1:5050/bets?status=pending&sort_by=stake&ascending=false&limit=50
 
-    ```
-    /bets?event_start_date=2025-10-01&event_end_date=2025-10-20
-    ```
-  * **Created date only:**
+# Filter by team (exact name, case-insensitive)
+GET http://127.0.0.1:5050/bets?team=Vilnius%20FC
 
-    ```
-    /bets?created_start_date=2025-09-01&created_end_date=2025-09-30
-    ```
+# Event date range (from–to)
+GET http://127.0.0.1:5050/bets?event_start_date=2025-10-01&event_end_date=2025-10-31
 
-* **Sorting** (ascending = `true|false`)
+# Created date range + pagination
+GET http://127.0.0.1:5050/bets?created_start_date=2025-09-01&created_end_date=2025-09-30&limit=25&skip=25
 
-  * By stake: `/bets?sort_by=stake&ascending=false`
-  * By odds: `/bets?sort_by=odds&ascending=false`
-  * By created date: `/bets?sort_by=createdAt&ascending=false`
-  * By event date: `/bets?sort_by=event_date&ascending=false`
+# Combined filter
+GET http://127.0.0.1:5050/bets?status=won&team=Kaunas%20United&event_start_date=2025-10-01&event_end_date=2025-10-31&sort_by=event_date&ascending=true
+```
+
+### Sorting
+
+```
+GET /bets?sort_by=<field>&ascending=<bool>
+```
+
+**Allowed values**
+
+* `sort_by`: `stake | odds | event_date | createdAt | bet_createdAt`
+* `ascending`: `true | false` (also accepts `1 | yes | y`)
+
+**Examples**
+
+```http
+GET /bets?sort_by=stake&ascending=false
+GET /bets?sort_by=odds&ascending=false
+GET /bets?sort_by=createdAt&ascending=false
+GET /bets?sort_by=event_date&ascending=false
+```
 
 ### Aggregations
 
-* **Summary per user:**
-  `GET /bets/summary`
-  Returns an array like:
+Overall summary by user email (totals won/lost and net balance):
 
-  ```json
-  [
-    { "userEmail": "user@example.com", "total_won": 25.0, "total_lost": 10.0, "final_balance": 15.0 }
-  ]
-  ```
+```http
+GET http://127.0.0.1:5050/bets/summary
+```
 
-### Create a Bet
+### Create a bet
 
-`POST /bets`
+```
+POST /bets
+Content-Type: application/json
+```
+
+**Body (winner)**
 
 ```json
 {
@@ -84,98 +193,44 @@ MongoDB Atlas + Flask REST API for a simple sports betting system.
 }
 ```
 
-**Delete a Bet**
-`DELETE /bets/<bet_id>`
-Example:
+> Notes:
+>
+> * `choice` must be `winner` **or** `score`.
+> * If `choice = "winner"` → `bet.team` is required (`"TeamName"` or `"draw"`).
+> * If `choice = "score"` → `bet.score.team_1` and `bet.score.team_2` are required (non-negative integers).
+> * The API validates that a matching **match** exists in the `Matches` collection for the **same day** and the **same teams**.
+
+### Delete a bet
 
 ```
-DELETE /bets/68e3f5adfef4d19e2273bcf2
+DELETE /bets/<id>
 ```
 
----
+**Example**
 
-## Users
-
-### List & Filter
-
-`GET /users` with query params (server-side via MongoDB):
-
-* **By name / surname / balance interval**
-
-  ```
-  /users?firstName=Edvinas&lastName=Masiulis&min_balance=1000&max_balance=2000
-  ```
-
-* **Sorting by balance**
-
-  ```
-  /users?sort_by=balance&ascending=false
-  ```
-
-### Create a User
-
-`POST /users`
-
-```json
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "phone": "+1234567890",
-  "email": "john.doe@example.com",
-  "birthDate": "1990-05-15",
-  "IBAN": "EE001122334455667788",
-  "balance": 500.75,
-  "nickname": "johnny"
-}
-```
-
-**Delete a User**
-`DELETE /users/<user_id>`
-Example:
-
-```
-DELETE http://127.0.0.1:5050/users/68e3f5adfef4d19e2273bcf2
-```
-
-*(If your server runs on 5000, use `http://127.0.0.1:5000`.)*
-
----
-
-## Matches & Teams (basic)
-
-* `GET /matches`, `POST /matches`
-* `GET /teams`, `POST /teams`
-
-Example `POST /matches`:
-
-```json
-{
-  "team_1": "Team A",
-  "team_2": "Team B",
-  "date": "2025-10-08"
-}
+```http
+DELETE http://127.0.0.1:5050/bets/68e3f5adfef4d19e2273bcf2
 ```
 
 ---
 
-## Notes
+## Date Notes
 
-* All filters/sorts are implemented with **MongoDB queries/aggregations** for scalability.
-* `bets/summary` counts **settled** bets (`won`/`lost`); `pending` is excluded from won/lost totals.
-* Ensure MongoDB Atlas IP access and credentials are configured (see `.env`).
-* Dev run:
-
-  ```bash
-  python main.py
-  # or
-  flask --app main run --port 5050 --debug
-  ```
+* `event.date` supports either a **`YYYY-MM-DD`** string or a Mongo **Date** (naive UTC).
+* The `/bets` filter works for both formats.
 
 ---
 
-## Optional Scripts
+## Common Status Codes
 
-* `scenario.py` — create a bet → show that user’s summary → delete the bet.
-* `scenario_e2e.py` — show summary (before) → create a match → create a new bet → show summary (after) + deltas → delete the bet.
+* `200 OK` — success
+* `201 Created` — resource created
+* `400 Bad Request` — invalid parameters/format (e.g., wrong date format)
+* `404 Not Found` — not found
+* `409 Conflict` — duplicate (when applicable)
+* `500 Internal Server Error` — unexpected error
 
-> Edit `BASE_URL` and user email in scripts before running.
+
+
+
+If you want, I can add a **Matches** section (CRUD + examples) too, so the README covers the full flow end-to-end.
