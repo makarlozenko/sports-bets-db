@@ -58,7 +58,7 @@ def register_bets_routes(app, db):
         return (s or "").strip()
 
     def _parse_event_date(s):
-        """Grąžina AWARE UTC datetime, jei pavyksta, kitaip None."""
+        """Grąžina AWARE UTC datetime, jei pavyksta, kitaip - None."""
         if s is None:
             return None
         if isinstance(s, datetime):
@@ -117,10 +117,10 @@ def register_bets_routes(app, db):
             rx = {"$regex": f"^{re.escape(team.strip())}$", "$options": "i"}
             query["$or"] = [{"event.team_1": rx}, {"event.team_2": rx}]
 
-        # Event date interval (Date ir (arba) String)
+        #Event date interval (Date ir (arba) String)
         event_or = []
 
-        # Date interval (Mongo Date)
+        #Date interval (Mongo Date)
         date_range_dt = {}
         if event_start:
             d = _parse_ymd(event_start)
@@ -154,7 +154,7 @@ def register_bets_routes(app, db):
             else:
                 query["$or"] = event_or
 
-        # Created date interval – tikrinam ir top-level createdAt, ir bet.createdAt
+        # Created date interval – tikriname ir top-level createdAt, ir bet.createdAt
         created_or = []
         created_range = {}
         if created_start:
@@ -219,7 +219,7 @@ def register_bets_routes(app, db):
             rx = {"$regex": f"^{re.escape(team.strip())}$", "$options": "i"}
             query["$or"] = [{"event.team_1": rx}, {"event.team_2": rx}]
 
-        # range ant event.date kaip Date ir kaip String
+        # range ant event.date kaip Date ir kaip String tipai
         or_date = []
         if start_date or end_date:
             # Date
@@ -258,7 +258,7 @@ def register_bets_routes(app, db):
         cur = BETS.find(query)
         items = [ser(x) for x in cur]
         if not items:
-            return jsonify({"error": "No bets found for this email"}), 404
+            return jsonify({"error": "No bets have been found for this email."}), 404
         return jsonify({"items": items, "total": len(items)})
 
     # ---------- CREATE ----------
@@ -284,7 +284,7 @@ def register_bets_routes(app, db):
             if not event_dt:   missing.append("event.date (ISO-8601 or YYYY-MM-DD)")
             if not bet.get("choice"): missing.append("bet.choice")
             if missing:
-                return jsonify({"message": "Missing required fields", "missing": missing}), 400
+                return jsonify({"message": "Missing required fields,", "missing": missing}), 400
 
             if user_id and isinstance(user_id, str):
                 try:
@@ -307,7 +307,7 @@ def register_bets_routes(app, db):
             if choice == "winner":
                 pick_team = _norm_name(bet.get("team"))
                 if not pick_team:
-                    return jsonify({"message": "For choice='winner' you must provide bet.team"}), 400
+                    return jsonify({"message": "For choice= 'winner' you must provide bet.team"}), 400
 
             if choice == "score":
                 score = bet.get("score") or {}
@@ -315,7 +315,7 @@ def register_bets_routes(app, db):
                     s1 = int(score.get("team_1"))
                     s2 = int(score.get("team_2"))
                 except Exception:
-                    return jsonify({"message": "For choice='score' you must provide integer score.team_1 and score.team_2"}), 400
+                    return jsonify({"message": "For choice='score' you must provide an integer score.team_1 and score.team_2"}), 400
                 if s1 < 0 or s2 < 0:
                     return jsonify({"message": "score values must be >= 0"}), 400
 
@@ -338,7 +338,7 @@ def register_bets_routes(app, db):
 
             match_doc = MATCHES.find_one({"$or": match_query_or})
             if not match_doc:
-                return jsonify({"message": "No such match found for given teams and date."}), 400
+                return jsonify({"message": "No such match has been found for given teams and date."}), 400
 
             # Duplicate (Date + String)
             dup_or = [
@@ -360,7 +360,7 @@ def register_bets_routes(app, db):
                 })
             duplicate = BETS.find_one({"$or": dup_query_or})
             if duplicate:
-                return jsonify({"message": "Duplicate bet: you already placed this type of bet for these teams on this date."}), 400
+                return jsonify({"message": "Duplicate bet: you have already placed this type of bet for these teams on this date."}), 400
 
             stored_event_date = _storage_date(event_date_raw, event_dt)
 
@@ -380,10 +380,10 @@ def register_bets_routes(app, db):
 
             res = BETS.insert_one(doc)
             new_bet = BETS.find_one({"_id": res.inserted_id})
-            return jsonify({"message": "Bet added successfully", "bet": ser(new_bet)}), 201
+            return jsonify({"message": "Bet added successfully.", "bet": ser(new_bet)}), 201
 
         except Exception as e:
-            return jsonify({"message": "Failed to add bet", "error": str(e)}), 400
+            return jsonify({"message": "Failed to add bet.", "error": str(e)}), 400
 
     # ---------- DELETE ----------
     @app.delete("/bets/<id>")
