@@ -189,7 +189,7 @@ def register_users_routes(app, db):
                 "error": str(e)
             }), 400
 
-    # ✅ ĮDĖK į register_users_routes(app, db)
+    #register_users_routes(app, db)
 
     @app.patch("/users/<id>")
     def patch_user(id):
