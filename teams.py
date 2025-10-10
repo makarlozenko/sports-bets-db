@@ -149,54 +149,89 @@ def register_teams_routes(app, db):
         cur = TEAMS.find({}).sort(sort_by, order)
         return jsonify([ser(x) for x in cur])
 
-    # --- AGGREGATIONS ---
-    @app.get("/teams/aggregations/goals")
-    def team_goals_summary():
+    @app.get("/teams/aggregations/football_stats")
+    def football_team_stats():
         """
-        Aggregation: total scored, conceded, difference.
-        For football and basketball (use ?sport=football or ?sport=basketball)
+        Aggregation: total goals scored/conceded, yellow/red cards for football teams.
+        Works with fields: comand1.name / comand2.name / result.*
         """
-        sport = request.args.get("sport", "football")
+        pipeline = [
+            {"$match": {"sport": "football"}},
 
-        teams = TEAMS.find({"sport": sport})
-        result = []
-        for t in teams:
-            total_scored = sum(p["achievements"]["careerGoalsOrPoints"] for p in t["players"])
-            total_conceded = round(total_scored * 0.7)
-            diff = total_scored - total_conceded
+            {"$lookup": {
+                "from": "Matches",
+                "let": {"team_name": "$teamName"},
+                "pipeline": [
+                    {"$match": {
+                        "$expr": {
+                            "$and": [
+                                {"$eq": ["$sport", "football"]},
+                                {"$or": [
+                                    {"$regexMatch": {"input": "$comand1.name", "regex": "$$team_name", "options": "i"}},
+                                    {"$regexMatch": {"input": "$comand2.name", "regex": "$$team_name", "options": "i"}}
+                                ]}
+                            ]
+                        }
+                    }}
+                ],
+                "as": "matches"
+            }},
 
-            result.append({
-                "teamName": t["teamName"],
-                "sport": t["sport"],
-                "total_scored": total_scored,
-                "total_conceded": total_conceded,
-                "difference": diff
-            })
+            {"$unwind": {"path": "$matches", "preserveNullAndEmptyArrays": False}},
 
+            {"$project": {
+                "teamName": 1,
+                "sport": 1,
+                "scored": {
+                    "$cond": [
+                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.comand1.result.goalsFor",
+                        "$matches.comand2.result.goalsFor"
+                    ]
+                },
+                "conceded": {
+                    "$cond": [
+                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.comand1.result.goalsAgainst",
+                        "$matches.comand2.result.goalsAgainst"
+                    ]
+                },
+                "yellow": {
+                    "$cond": [
+                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.comand1.result.cards.yellow",
+                        "$matches.comand2.result.cards.yellow"
+                    ]
+                },
+                "red": {
+                    "$cond": [
+                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.comand1.result.cards.red",
+                        "$matches.comand2.result.cards.red"
+                    ]
+                }
+            }},
+
+            {"$group": {
+                "_id": "$teamName",
+                "total_scored": {"$sum": "$scored"},
+                "total_conceded": {"$sum": "$conceded"},
+                "yellow_cards": {"$sum": "$yellow"},
+                "red_cards": {"$sum": "$red"}
+            }},
+
+            {"$project": {
+                "_id": 0,
+                "teamName": "$_id",
+                "total_scored": 1,
+                "total_conceded": 1,
+                "goal_diff": {"$subtract": ["$total_scored", "$total_conceded"]},
+                "yellow_cards": 1,
+                "red_cards": 1
+            }}
+        ]
+
+        result = list(db.Team.aggregate(pipeline))
         return jsonify(result)
 
-    @app.get("/teams/aggregations/cards")
-    def team_cards_summary():
-        """
-        Aggregation: average yellow and red cards (based on penaltiesReceived field)
-        """
-        sport = request.args.get("sport", "football")
-        teams = TEAMS.find({"sport": sport})
-        result = []
-
-        for t in teams:
-            players = t.get("players", [])
-            total_penalties = sum(p["achievements"]["penaltiesReceived"] for p in players)
-            avg_per_game = round(total_penalties / len(players), 2) if players else 0
-            yellow_cards = round(avg_per_game * 0.8, 2)
-            red_cards = round(avg_per_game * 0.2, 2)
-
-            result.append({
-                "teamName": t["teamName"],
-                "sport": t["sport"],
-                "avg_yellow_cards": yellow_cards,
-                "avg_red_cards": red_cards
-            })
-
-        return jsonify(result)
 
