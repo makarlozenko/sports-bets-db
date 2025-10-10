@@ -11,24 +11,17 @@ import sys
 from datetime import datetime
 import requests
 
-BASE_URL = "http://127.0.0.1:5050"
+BASE_URL = "http://127.0.0.1:5000"
 
-# Įjunk/įjunk seedinimą
+# Įjungti/įšjungti seedinimą
 SEED_BETS = True
 
 #dovydas.sakalauskas5@gmail.com
 #ee576a2c1f82513b2d4b8047
-# pritaikyk pagal savo vartotoją:
 SEED_USER_ID = "dc4e67460108e467079fe68e"
 SEED_USER_EMAIL = "martynas.grigonis1@outlook.com"
 
 # ---------- Pagalbinės užklausos ----------
-def _safe_json(resp):
-    try:
-        return resp.json()
-    except Exception:
-        return {"raw_text": resp.text}
-
 def get_json(resp):
     """Saugiai grąžina JSON iš requests.Response (arba tekstą, jei ne JSON)."""
     try:
@@ -38,15 +31,15 @@ def get_json(resp):
 
 def _get(url, **kw):
     resp = requests.get(url, timeout=30, **kw)
-    return resp, _safe_json(resp)
+    return resp, get_json(resp)
 
 def _post(url, json=None, **kw):
     resp = requests.post(url, json=json, timeout=30, **kw)
-    return resp, _safe_json(resp)
+    return resp, get_json(resp)
 
 def _patch(url, json=None, **kw):
     resp = requests.patch(url, json=json, timeout=30, **kw)
-    return resp, _safe_json(resp)
+    return resp, get_json(resp)
 
 # ---------- API kvietimai ----------
 def get_pending_bets():
@@ -78,14 +71,13 @@ def get_user_by_id_or_email(user_id, user_email=None):
 def update_bet_status(bet_id, new_status):
     """
     Naudojam POST /bets/update_status  → body: {"betId": "...", "status": "won"|"lost"}
-    (PATCH /bets/<id> pas tave nenumatytas – būtų 405)
     """
     url = f"{BASE_URL}/bets/update_status"
     payload = {"betId": bet_id, "status": new_status}
     resp, data = _post(url, json=payload)
     ok = resp.status_code in (200, 201)
     if not ok:
-        print(f"⚠️ Nepavyko atnaujinti statymo {bet_id}: {resp.status_code}, {resp.text}")
+        print(f"Nepavyko atnaujinti statymo {bet_id}: {resp.status_code}, {resp.text}")
     return ok, data
 
 def update_user_balance(user_id, new_balance):
@@ -102,7 +94,7 @@ def update_user_balance(user_id, new_balance):
     if resp_post.status_code in (200, 201):
         return True, get_json(resp_post)
 
-    print(f"⚠️ Balanso atnaujinimas nepavyko vartotojui {user_id}: "
+    print(f"Balanso atnaujinimas nepavyko vartotojui {user_id}: "
           f"PATCH={resp_patch.status_code} POST={resp_post.status_code}")
     return False, get_json(resp_post)
 
@@ -181,7 +173,7 @@ def _post_bet(payload):
     try:
         resp, data = _post(url, json=payload)
     except Exception as e:
-        print(f"❌ Klaida siunčiant POST /bets: {e}")
+        print(f"Klaida siunčiant POST /bets: {e}")
         return
     _print_api_resp("POST /bets", resp, data, payload)
 
@@ -190,8 +182,6 @@ def seed_two_bets():
     Įrašo 2 bet'us:
       1) choice='winner' (Vilnius FC vs Kaunas United, 2025-10-08)
       2) choice='score'  (Vilnius FC vs Kaunas United, 2025-10-08, 4:2)
-    Pastaba: /bets endpointas tikrina ar toks matchas egzistuoja.
-    Tad užtikrink, kad 'matches' kolekcijoje yra atitinkami įrašai.
     """
     bet_winner = {
         "userId": SEED_USER_ID,
@@ -245,7 +235,7 @@ def main():
 
     today = datetime.now()
 
-    # 1) Pasiimam laukiančius statymus ir visus match'us
+    # 1) Pasiimam laukiančius statymus ir visas rungtynes
     bets = get_pending_bets()
     matches = get_matches()
 
@@ -253,13 +243,13 @@ def main():
     for bet in bets:
         match = find_match_for_bet(bet, matches)
         if not match:
-            print(f"⚠️ Nerastos rungtynės statymui {bet.get('_id')} "
+            print(f"Nerastos rungtynės statymui {bet.get('_id')} "
                   f"({bet['event']['team_1']} vs {bet['event']['team_2']}, {bet['event']['date']})")
             continue
 
         match_date = parse_date(str(match.get("date")))
         if not match_date:
-            print(f"⚠️ Nepavyko išparsuoti rungtynių datos (bet {bet.get('_id')})")
+            print(f"Nepavyko išparsuoti rungtynių datos (bet {bet.get('_id')})")
             continue
 
         if match_date > today:
@@ -283,9 +273,9 @@ def main():
         # 3) Atnaujinam statymo statusą
         ok, _ = update_bet_status(bet["_id"], status)
         if ok:
-            print(f"✅ Statymas {bet['_id']} → {status}")
+            print(f"Statymas {bet['_id']} → {status}")
         else:
-            print(f"❌ Statymo {bet['_id']} statuso atnaujinti nepavyko → {status}")
+            print(f"Statymo {bet['_id']} statuso atnaujinti nepavyko → {status}")
             continue  # jei statuso nepavyko pakeisti, balansą praleidžiam
 
         # 4) Atnaujinam vartotojo balansą
@@ -293,7 +283,7 @@ def main():
         user_email = bet.get("userEmail")
         user = get_user_by_id_or_email(user_id, user_email)
         if not user:
-            print(f"⚠️ Vartotojas {user_id} / {user_email} nerastas – balansas nepakeistas")
+            print(f"Vartotojas {user_id} / {user_email} nerastas – balansas nepakeistas")
             continue
 
         try:
@@ -309,11 +299,12 @@ def main():
         else:
             balance -= stake
 
+
         ok, _ = update_user_balance(user["_id"], balance)
         if ok:
-            print(f"💰 Vartotojo {user.get('email')} balansas → {balance:.2f}")
+            print(f"Vartotojo {user.get('email')} balansas → {balance:.2f}")
         else:
-            print(f"⚠️ Balanso atnaujinti nepavyko vartotojui {user.get('email')} (palikta nepakeista)")
+            print(f"Balanso atnaujinti nepavyko vartotojui {user.get('email')} (palikta nepakeista)")
 
     print("=== PABAIGA ===")
     return 0

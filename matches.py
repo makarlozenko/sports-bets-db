@@ -26,7 +26,6 @@ def register_matches_routes(app, db):
         return d
 
     # ---------------------- CRUD ----------------------
-
     @app.get("/matches")
     def list_matches():
         """Return all matches (optionally filtered by sport or date)."""
@@ -160,7 +159,6 @@ def register_matches_routes(app, db):
         return jsonify({"items": items, "total": len(items)})
 
     # ---------------------- REORDER ----------------------
-
     @app.get("/matches/reorder")
     def reorder_matches():
         """
