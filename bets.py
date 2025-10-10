@@ -421,31 +421,26 @@ def register_bets_routes(app, db):
     # ---------- SUMMARY ----------
     @app.get("/bets/summary")
     def bet_summary():
-        summary = {}
-        for b in BETS.find({}):
-            email = b.get("userEmail")
-            stake = to_float(b.get("bet", {}).get("stake", 0))
-            odds  = to_float(b.get("bet", {}).get("odds", 1))
-            amount = Decimal(str(stake * odds))
-            if not email:
-                continue
-            if email not in summary:
-                summary[email] = {"total_won": Decimal("0"), "total_lost": Decimal("0")}
-            if b.get("status") == "won":
-                summary[email]["total_won"]  += amount
-            elif b.get("status") == "lost":
-                summary[email]["total_lost"] += amount
-
-        output = []
-        for email, vals in summary.items():
-            final_balance = vals["total_won"] - vals["total_lost"]
-            output.append(OrderedDict([
-                ("userEmail", email),
-                ("total_won", round(float(vals["total_won"]), 2)),
-                ("total_lost", round(float(vals["total_lost"]), 2)),
-                ("final_balance", round(float(final_balance), 2))
-            ]))
-        return Response(json.dumps(output), mimetype="application/json")
+        try:
+            pipeline = [
+                {"$group": {
+                    "_id": "$userEmail",
+                    "total_won": {"$sum": {
+                        "$cond": [{"$eq": ["$status", "won"]}, {"$multiply": ["$bet.stake", "$bet.odds"]}, 0]}},
+                    "total_lost": {"$sum": {
+                        "$cond": [{"$eq": ["$status", "lost"]}, {"$multiply": ["$bet.stake", "$bet.odds"]}, 0]}},
+                }},
+                {"$project": {
+                    "_id": 0,
+                    "userEmail": "$_id",
+                    "total_won": {"$toDouble": {"$round": ["$total_won", 2]}},
+                    "total_lost": {"$toDouble": {"$round": ["$total_lost", 2]}},
+                    "final_balance": {"$toDouble": {"$round": [{"$subtract": ["$total_won", "$total_lost"]}, 2]}}
+                }}
+            ]
+            return jsonify(list(BETS.aggregate(pipeline)))
+        except Exception as e:
+            return jsonify({"error": "Failed to generate summary", "details": str(e)}), 500
 
     # ---------- UPDATE STATUS ----------
     @app.post("/bets/update_status")
