@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 import requests
 
 # ========= CONFIG =========
-BASE_URL = "http://127.0.0.1:5000"
+BASE_URL = "http://127.0.0.1:5050"
 USER_EMAIL = "aurimas.mikalauskas14@gmail.com"  # <-- CHANGE to an existing user in your DB
 
 # We'll keep teams/date consistent between match and bet
@@ -31,9 +31,9 @@ MATCH_DATE = "2025-10-08"  # YYYY-MM-DD
 match_payload = {
   "matchType": "league",
   "sport": "football",
-  "kada": MATCH_DATE,
-  "komanda1": {
-    "pavadinimas": TEAM_1,
+  "date": MATCH_DATE,
+  "comand1": {
+    "name": TEAM_1,
     "result": {
       "status": "won",
       "goalsFor": 2,
@@ -41,9 +41,9 @@ match_payload = {
       "cards": {"red": 0, "yellow": 2}
     }
   },
-  "komanda2": {
-    "pavadinimas": TEAM_2,
-    "rezultatai": {
+  "comand2": {
+    "name": TEAM_2,
+    "result": {
       "status": "lost",
       "goalsFor": 1,
       "goalsAgainst": 2,
@@ -61,11 +61,11 @@ bet_payload = {
         "date": MATCH_DATE
     },
     "bet": {
-        "stake": 10.0,
-        "odds": 2.2
+            "choice": "winner",
+            "team": TEAM_1,
+            "odds": 2.0,
+            "stake": 50.0
     },
-    # Use "won"/"lost" only if you want the summary to reflect it immediately.
-    # Otherwise use "pending". Here we start a fresh bet so let's use "pending".
     "status": "won"
 }
 
