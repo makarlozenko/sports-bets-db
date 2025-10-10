@@ -189,7 +189,7 @@ def register_users_routes(app, db):
                 "error": str(e)
             }), 400
 
-    # ✅ ĮDĖK į register_users_routes(app, db)
+    #register_users_routes(app, db)
 
     @app.patch("/users/<id>")
     def patch_user(id):
@@ -261,3 +261,13 @@ def register_users_routes(app, db):
         if not user:
             return jsonify({"error": "User not found"}), 404
         return jsonify({"user": ser(user)}), 200
+
+    @app.delete("/users/<id>")
+    def delete_user(id):
+        oid = to_oid(id)
+        if not oid:
+            return jsonify({"error": "Invalid id"}), 400
+        res = USERS.delete_one({"_id": oid})
+        if not res.deleted_count:
+            return jsonify({"error": "User not found"}), 404
+        return jsonify({"deleted": True, "_id": id})

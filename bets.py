@@ -196,6 +196,7 @@ def register_bets_routes(app, db):
         return jsonify({
             "items": items,
             "total": len(items),
+            "query": query,
             "sorted_by": sort_field,
             "ascending": ascending,
             "limit": limit,
