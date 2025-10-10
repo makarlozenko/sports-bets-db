@@ -189,15 +189,52 @@ def register_users_routes(app, db):
                 "error": str(e)
             }), 400
 
-    @app.delete("/users/<id>")
-    def delete_user(id):
+    # ✅ ĮDĖK į register_users_routes(app, db)
+
+    @app.patch("/users/<id>")
+    def patch_user(id):
         oid = to_oid(id)
         if not oid:
             return jsonify({"error": "Invalid id"}), 400
-        res = USERS.delete_one({"_id": oid})
-        if not res.deleted_count:
+
+        payload = request.get_json(silent=True) or {}
+        if not isinstance(payload, dict) or not payload:
+            return jsonify({"error": "Empty or invalid body"}), 400
+
+        # Leidžiami laukeliai atnaujinimui — balance mums svarbiausias
+        allowed = {"firstName", "lastName", "nickname", "phone", "IBAN", "balance", "birthDate"}
+        updates = {k: v for k, v in payload.items() if k in allowed}
+        if not updates:
+            return jsonify({"error": "No allowed fields to update", "allowed": list(allowed)}), 400
+
+        # Normalizacijos / validacijos:
+        if "balance" in updates:
+            try:
+                updates["balance"] = Decimal128(str(updates["balance"]))
+            except Exception:
+                return jsonify({"error": "Invalid balance"}), 400
+
+        if "birthDate" in updates and updates["birthDate"]:
+            try:
+                updates["birthDate"] = datetime.strptime(updates["birthDate"], "%Y-%m-%d")
+            except Exception:
+                return jsonify({"error": "Invalid birthDate. Use YYYY-MM-DD"}), 400
+
+        if "phone" in updates:
+            p = (updates["phone"] or "").replace(" ", "").replace("-", "")
+            if p.startswith("00"):
+                p = "+" + p[2:]
+            updates["phone"] = p
+
+        if "IBAN" in updates:
+            updates["IBAN"] = (updates["IBAN"] or "").replace(" ", "").upper()
+
+        res = USERS.update_one({"_id": oid}, {"$set": updates})
+        if res.matched_count == 0:
             return jsonify({"error": "User not found"}), 404
-        return jsonify({"deleted": True, "_id": id})
+
+        user = USERS.find_one({"_id": oid})
+        return jsonify({"message": "User updated", "user": ser(user)}), 200
 
     @app.post("/users/update_balance")
     def update_user_balance():
@@ -217,3 +254,10 @@ def register_users_routes(app, db):
             return jsonify({"error": "No user updated"}), 404
 
         return jsonify({"message": "User balance updated", "userId": user_id, "balance": float(new_balance)})
+
+    @app.get("/users/by_email/<email>")
+    def get_user_by_email(email):
+        user = USERS.find_one({"email": (email or "").strip().lower()})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        return jsonify({"user": ser(user)}), 200

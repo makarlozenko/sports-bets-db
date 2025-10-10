@@ -64,9 +64,9 @@ POST /matches
 {
   "matchType": "league",
   "sport": "football",
-  "kada": MATCH_DATE,
-  "komanda1": {
-    "pavadinimas": TEAM_1,
+  "date": 2025-09-10,
+  "comand1": {
+    "name": "team1",
     "result": {
       "status": "won",
       "goalsFor": 2,
@@ -74,9 +74,9 @@ POST /matches
       "cards": {"red": 0, "yellow": 2}
     }
   },
-  "komanda2": {
-    "pavadinimas": TEAM_2,
-    "rezultatai": {
+  "comand2": {
+    "name": "team2",
+    "result": {
       "status": "lost",
       "goalsFor": 1,
       "goalsAgainst": 2,
@@ -118,27 +118,11 @@ DELETE /bets/<bet_id>
 
 ## Quick Start
 
-1. **Config (MongoDB Atlas)**
-   Create `.env`:
-
-   ```
-   MONGODB_URI="mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority"
-   DB_NAME="sports_bets"
-   ```
-2. **Install**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. **Run**
-
-   ```bash
-   python main.py
-   # or: flask --app main run --port 5050 --debug
-   ```
-
-   Default dev URL: `http://127.0.0.1:5050`.
-
+**Config**
+ ```
+ client = MongoClient("mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority")
+ db = client.SportBET
+ ```
 ## E2E Scenarios (optional)
 
 * `scenario_e2e.py` — show summary (before) → create a match → create a new bet → show summary (after) + deltas → delete the bet.
