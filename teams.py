@@ -235,3 +235,104 @@ def register_teams_routes(app, db):
         return jsonify(result)
 
 
+    @app.get("/teams/aggregations/basketball_stats")
+    def basketball_team_stats():
+        """
+        Aggregation: average fouls per match, total scored/conceded points, and score difference.
+        Works with basketball matches (sport='krepsinis').
+        """
+        pipeline = [
+            {"$match": {"sport": "krepsinis"}},
+
+            {"$lookup": {
+                "from": "Matches",
+                "let": {"team_name": "$teamName"},
+                "pipeline": [
+                    {"$match": {
+                        "$expr": {
+                            "$and": [
+                                {"$eq": ["$sport", "krepsinis"]},
+                                {"$or": [
+                                    {"$regexMatch": {"input": "$comand1.name", "regex": "$$team_name", "options": "i"}},
+                                    {"$regexMatch": {"input": "$comand2.name", "regex": "$$team_name", "options": "i"}}
+                                ]}
+                            ]
+                        }
+                    }}
+                ],
+                "as": "matches"
+            }},
+
+            {"$unwind": {"path": "$matches", "preserveNullAndEmptyArrays": False}},
+
+            {"$project": {
+                "teamName": 1,
+                "scored_points": {
+                    "$cond": [
+                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        {"$add": [
+                            "$matches.comand1.result.pointsBreakdown.one",
+                            {"$multiply": [2, "$matches.comand1.result.pointsBreakdown.two"]},
+                            {"$multiply": [3, "$matches.comand1.result.pointsBreakdown.three"]}
+                        ]},
+                        {"$add": [
+                            "$matches.comand2.result.pointsBreakdown.one",
+                            {"$multiply": [2, "$matches.comand2.result.pointsBreakdown.two"]},
+                            {"$multiply": [3, "$matches.comand2.result.pointsBreakdown.three"]}
+                        ]}
+                    ]
+                },
+                "conceded_points": {
+                    "$cond": [
+                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        {"$add": [
+                            "$matches.comand2.result.pointsBreakdown.one",
+                            {"$multiply": [2, "$matches.comand2.result.pointsBreakdown.two"]},
+                            {"$multiply": [3, "$matches.comand2.result.pointsBreakdown.three"]}
+                        ]},
+                        {"$add": [
+                            "$matches.comand1.result.pointsBreakdown.one",
+                            {"$multiply": [2, "$matches.comand1.result.pointsBreakdown.two"]},
+                            {"$multiply": [3, "$matches.comand1.result.pointsBreakdown.three"]}
+                        ]}
+                    ]
+                },
+                "fouls": {
+                    "$cond": [
+                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.comand1.result.fouls",
+                        "$matches.comand2.result.fouls"
+                    ]
+                }
+            }},
+
+            {"$group": {
+                "_id": "$teamName",
+                "total_scored": {"$sum": "$scored_points"},
+                "total_conceded": {"$sum": "$conceded_points"},
+                "total_fouls": {"$sum": "$fouls"},
+                "match_count": {"$sum": 1}
+            }},
+
+            {"$project": {
+                "_id": 0,
+                "teamName": "$_id",
+                "total_scored": 1,
+                "total_conceded": 1,
+                "goal_diff": {"$subtract": ["$total_scored", "$total_conceded"]},
+                "avg_fouls": {
+                    "$cond": [
+                        {"$gt": ["$match_count", 0]},
+                        {"$divide": ["$total_fouls", "$match_count"]},
+                        0
+                    ]
+                },
+                "match_count": 1
+            }}
+        ]
+
+        result = list(db.Team.aggregate(pipeline))
+        return jsonify(result)
+
+
+
