@@ -129,7 +129,10 @@ Content-Type: application/json
 ```http
 GET /bets/summary
 # -> [
-#   { "userEmail": "arina@example.com", "total_won": 25.0, "total_lost": 10.0, "final_balance": 15.0 },
+#   { "userEmail": "arina@example.com",
+      "total_won": 25.0,
+      "total_lost": 10.0,
+      "final_balance": 15.0 },
 #   ...
 # ]
 ```
