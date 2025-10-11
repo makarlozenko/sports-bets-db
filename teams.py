@@ -8,7 +8,7 @@ import json
 from flask import Response
 
 def register_teams_routes(app, db):
-    TEAMS = db.Team             # Kolekcija
+    TEAMS = db.Team             # Collection
 
     def to_oid(s):
         try:
