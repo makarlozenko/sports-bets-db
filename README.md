@@ -60,11 +60,9 @@ db = client.SportBET
 ```
 
 ## Getting Started — run everything via `main.py`
----
 ## Test the API using Postman
-curl http://127.0.0.1:5000/users
+curl http://127.0.0.1:5050
 
----
 ## Run scenarios for testing:
 ### **Scenario E2E (`scenario_e2e.py`)**
 This script performs an end-to-end test of the betting API.
