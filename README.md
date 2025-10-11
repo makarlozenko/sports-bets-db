@@ -85,7 +85,7 @@ POST /matches
 {
   "matchType": "league",
   "sport": "football",
-  "date": 2025-09-10,
+  "date": "2025-09-10",
   "comand1": {
     "name": "team1",
     "result": {
@@ -115,8 +115,11 @@ Content-Type: application/json
 
 {
   "userEmail": "rokisab@example.com",
-  "event": { "team_1": "Team A", "team_2": "Team B", "date": "2025-10-08" },
-  "bet": { "stake": 10.0, "odds": 2.5 },
+  "event": { "team_1": "Team A",
+             "team_2": "Team B",
+              "date": "2025-10-08" },
+  "bet": { "stake": 10.0,
+           "odds": 2.5 },
   "status": "pending"   // or "won"/"lost"
 }
 ```
