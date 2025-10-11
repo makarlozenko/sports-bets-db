@@ -6,14 +6,28 @@ Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-t
 
 * **User**
   
-  * `email` (unique), `firstName`, `lastName`, `balance`, `nickname`, `birthDate`, `IBAN`, `phone`
+  * `email` (unique),
+  * `firstName`,
+  * `lastName`,
+  * `balance`,
+  * `nickname`,
+  * `birthDate`,
+  * `IBAN`,
+  * `phone`
     
 * **Team**
 
-  * `coaches` : `{firstName, lastName, experienceYears, coachType}`, `players` : `[{firstName, lastName, role, birthDate, achievements : {careerGoalsOrPoints, penaltiesReceived} }]`, `rating`, `sport` : `football | krepsinis`, `teamName`
+  * `coaches` : `{firstName, lastName, experienceYears, coachType}`,
+  * `players` : `[{firstName, lastName, role, birthDate, achievements : {careerGoalsOrPoints, penaltiesReceived} }]`,
+  * `rating`,
+  * `sport` : `football | krepsinis`, `teamName`
 * **Matches**
 
-  * `comand1` : `{name, result : []}, `comand2` : `{name, result : []}, `date` (`YYYY-MM-DD`), `matchType`, `sport`
+  * `comand1` : `{name, result : []},
+  * `comand2` : `{name, result : []},
+  * `date` (`YYYY-MM-DD`),
+  * `matchType`,
+  * `sport`
 * **Bets**
 
   * `userEmail` (references `users.email`)
