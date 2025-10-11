@@ -6,6 +6,36 @@ Four core collections: `User`, `Team`, `Matches`, `Bets`.
 
 Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-to-end checks.
 
+# Table of Contents
+
+1. [Sports Bets DB](#sports-bets-db)
+2. [Collections](#collections)
+
+   * [User](#user)
+   * [Team](#team)
+   * [Matches](#matches)
+   * [Bets](#bets)
+3. [Database Schema](#the-schema-of-db)
+4. [Quick Start](#quick-start)
+5. [Getting Started](#getting-started--run-everything-via-mainpy)
+6. [Testing the API (Postman)](#test-the-api-using-postman)
+7. [Scenarios](#run-scenarios-for-testing)
+
+   * [Scenario E2E (`scenario_e2e.py`)](#scenario-e2e-scenario_e2epy)
+   * [Scenario Bets (`scenario_bets.py`)](#scenario-bets-scenario_betspy)
+8. [Endpoints](#all-endpoints-more-details-can-be-found-in-the-other-readme-files-for-each-collection)
+
+   * [Health Check](#checking-health-of-db)
+   * [Users](#users)
+   * [Teams](#teams)
+
+     * [Aggregations](#aggregations)
+   * [Matches](#matches-1)
+   * [Bets](#bets-1)
+
+     * [Aggregation](#agregation)
+
+---
 ## Collections
 
 * **User**
