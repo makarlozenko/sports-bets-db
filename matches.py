@@ -1,13 +1,19 @@
 from flask import request, jsonify
 from bson import ObjectId
 from datetime import datetime
-
+from dateutil import parser
 def register_matches_routes(app, db):
-    MATCHES = db.Matches   # MongoDB collection
+    MATCHES = db.Matches   # collection
 
     def to_oid(s):
         try:
             return ObjectId(s)
+        except Exception:
+            return None
+
+    def parse_dt(s):
+        try:
+            return parser.isoparse(s)
         except Exception:
             return None
 
@@ -28,25 +34,28 @@ def register_matches_routes(app, db):
     # ---------------------- CRUD ----------------------
     @app.get("/matches")
     def list_matches():
-        """Return all matches (optionally filtered by sport or date)."""
         sport = request.args.get("sport")
-        date_from = request.args.get("from")
-        date_to = request.args.get("to")
+        date_from = parse_dt(request.args.get("from"))
+        date_to = parse_dt(request.args.get("to"))
+
+        sort_by = request.args.get("sort_by", "date")
+        ascending = request.args.get("ascending", "false").lower() == "true"
+        order = 1 if ascending else -1
 
         query = {}
         if sport:
             query["sport"] = sport
         if date_from or date_to:
             date_query = {}
-            if date_from:
-                date_query["$gte"] = date_from
-            if date_to:
-                date_query["$lte"] = date_to
+            if date_from: date_query["$gte"] = date_from
+            if date_to:   date_query["$lte"] = date_to
             query["date"] = date_query
 
-        cur = MATCHES.find(query)
+        total = MATCHES.count_documents(query)
+        cur = (MATCHES.find(query)
+               .sort(sort_by, order))
         items = [ser(x) for x in cur]
-        total = len(items)
+
         return jsonify({"items": items, "total": total})
 
     @app.get("/matches/<id>")
@@ -91,7 +100,7 @@ def register_matches_routes(app, db):
                 return jsonify({
                     "error": "Duplicate match already exists for this date and teams",
                     "existing_match": ser(duplicate)
-                }), 409  # 409 Conflict
+                }), 409
 
             # --- insert if unique ---
             res = MATCHES.insert_one(data)
