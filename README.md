@@ -1,7 +1,9 @@
 # Sports Bets DB
 
-MongoDB Atlas database + Flask REST API for a simple sports betting system. 
+MongoDB Atlas database + Flask REST API for a simple sports betting system.
+
 Four core collections: `User`, `Team`, `Matches`, `Bets`.
+
 Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-to-end checks.
 
 ## Collections
