@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+
 """
 Automatinis statymų suvedimas:
 - Randa 'pending' statymus ir atitinkamas rungtynes
 - Palygina vartotojo pasirinktą baigtį su faktiniu rezultatu
 - Atnaujina statymo statusą per POST /bets/update_status
-- (Pasirinktinai) atnaujina vartotojo balansą (PATCH /users/<id> su fallback į POST /users/update_balance)
+- Atnaujina vartotojo balansą (PATCH /users/<id> su fallback į POST /users/update_balance)
 """
 
 import sys
@@ -12,18 +12,19 @@ from datetime import datetime
 import requests
 
 BASE_URL = "http://127.0.0.1:5000"
-
 # Įjungti/įšjungti seedinimą
 SEED_BETS = True
 
-#dovydas.sakalauskas5@gmail.com
-#ee576a2c1f82513b2d4b8047
-SEED_USER_ID = "dc4e67460108e467079fe68e"
-SEED_USER_EMAIL = "martynas.grigonis1@outlook.com"
+
+# Galima pasirinkti kitą egzistuojantį vartotoją
+# dovydas.sakalauskas5@gmail.com
+# ee576a2c1f82513b2d4b8047
+SEED_USER_ID = "ee576a2c1f82513b2d4b8047"
+SEED_USER_EMAIL = "dovydas.sakalauskas5@gmail.com"
 
 # ---------- Pagalbinės užklausos ----------
 def get_json(resp):
-    """Saugiai grąžina JSON iš requests.Response (arba tekstą, jei ne JSON)."""
+    """Grąžina JSON iš requests.Response"""
     try:
         return resp.json()
     except Exception:
@@ -53,7 +54,7 @@ def get_matches():
     return data.get("items", [])
 
 def get_user_by_id_or_email(user_id, user_email=None):
-    """Pirma bando gauti pagal id, jei neranda – bando pagal email (jei pateikta)."""
+    """Pirma bando gauti pagal id, jei neranda bando pagal email"""
     if user_id:
         url = f"{BASE_URL}/users/{user_id}"
         resp = requests.get(url, timeout=30)
@@ -98,7 +99,7 @@ def update_user_balance(user_id, new_balance):
           f"PATCH={resp_patch.status_code} POST={resp_post.status_code}")
     return False, get_json(resp_post)
 
-# ---------- Verslo logika ----------
+# ---------- Statymu logika ----------
 def parse_date(d):
     """Bandom kelių formatų datas: 'Thu, 03 Oct 2025 00:00:00 GMT' ir 'YYYY-MM-DD'."""
     if d is None:
@@ -115,7 +116,7 @@ def parse_date(d):
 def find_match_for_bet(bet, matches):
     """
     Griežtas sutapimas:
-    - ta pati diena (pagal 'YYYY-MM-DD' arba GMT stringą)
+    - ta pati diena (pagal 'YYYY-MM-DD')
     - komandos 1:1 (turi sutapti pavadinimai)
     """
     bet_date = parse_date(str(bet["event"]["date"]))
@@ -133,7 +134,7 @@ def find_match_for_bet(bet, matches):
     return None
 
 def get_match_result(match):
-    """Grąžina (winner, (goals1, goals2)). winner ∈ {komandos pavadinimas, 'draw', None}."""
+    """Grąžina (winner, (goals1, goals2)). winner priklauso {komandos pavadinimas, 'draw', None}."""
     t1 = match["comand1"]["name"]
     t2 = match["comand2"]["name"]
 
@@ -225,9 +226,9 @@ def seed_two_bets():
 
     print("Seed'inimas baigtas.\n")
 
-# ---------- Programos įėjimas ----------
+# ---------- Programos paleidimas ----------
 def main():
-    print("=== PRADŽIA: STATYMŲ SUVEDIMO SCENARIJUS ===")
+    print("=== PRADŽIA: STATYMŲ SCENARIJUS ===")
 
     # 0) Pasirinktinai: seed'inam 2 bet'us
     if SEED_BETS:
@@ -298,7 +299,6 @@ def main():
             balance += stake * odds
         else:
             balance -= stake
-
 
         ok, _ = update_user_balance(user["_id"], balance)
         if ok:
