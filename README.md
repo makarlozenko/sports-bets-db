@@ -20,7 +20,8 @@ Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-t
   * `coaches` : `{firstName, lastName, experienceYears, coachType}`,
   * `players` : `[{firstName, lastName, role, birthDate, achievements : {careerGoalsOrPoints, penaltiesReceived} }]`,
   * `rating`,
-  * `sport` : `football | krepsinis`, `teamName`
+  * `sport` : `football | krepsinis`,
+  * `teamName`
 * **Matches**
 
   * `comand1` : `{name, result : []}`,
@@ -28,6 +29,7 @@ Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-t
   * `date` (`YYYY-MM-DD`),
   * `matchType`,
   * `sport`
+  * `odd`
 * **Bets**
 
   * `userEmail` (references `users.email`)
@@ -42,7 +44,7 @@ Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-t
 ```
 GET    /bets
 POST   /bets
-GET    /bets/summary           # per-user won/lost/final balance summary
+GET    /bets/summary           # per-user won/lost final balance summary
 DELETE /bets/<bet_id>
 
 GET    /matches
@@ -64,10 +66,14 @@ POST /users
 Content-Type: application/json
 
 {
-  "firstName": "Rokas",
-  "lastName": "Sabonis",
-  "email": "rokisab@example.com",
-  "balance": 10
+  "firstName": "Edvinas",
+  "lastName": "Masiulis",
+  "phone": "+37064271769",
+  "email": "edvinas.masiulis0@outlook.com",
+  "birthDate": "1987-04-07",
+  "IBAN": "EE685147538638153748",
+  "balance": 12.00,
+  "nickname": "edvinas0"
 }
 ```
 
@@ -138,15 +144,4 @@ DELETE /bets/<bet_id>
  client = MongoClient("mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority")
  db = client.SportBET
  ```
-## E2E Scenarios (optional)
-
-* `scenario_e2e.py` — show summary (before) → create a match → create a new bet → show summary (after) + deltas → delete the bet.
-
-> Before running, edit `BASE_URL` and `USER_EMAIL`.
-
-## Notes
-
-* The summary (`/bets/summary`) uses only **settled** bets: `won` and `lost`. `pending` is excluded.
-* If Atlas IP access control is enabled, add your current IP in **Network Access**.
-* If you enforce uniqueness, use a composite rule like one bet per `userEmail + event`.
 
