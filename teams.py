@@ -117,7 +117,6 @@ def register_teams_routes(app, db):
     # FILTER
     @app.get("/teams/filter")
     def filter_teams():
-        """Filter teams by sport, team name, rating range"""
         sport = request.args.get("sport")
         name = request.args.get("name")
         min_rating = request.args.get("min_rating", type=int)
@@ -128,16 +127,15 @@ def register_teams_routes(app, db):
             query["sport"] = sport
         if name:
             query["teamName"] = {"$regex": name, "$options": "i"}
-        if min_rating or max_rating:
-            query["rating"] = {}
-            if min_rating:
-                query["rating"]["$gte"] = min_rating
-            if max_rating:
-                query["rating"]["$lte"] = max_rating
+        if min_rating is not None or max_rating is not None:
+            rng = {}
+            if min_rating is not None: rng["$gte"] = min_rating
+            if max_rating is not None: rng["$lte"] = max_rating
+            query["rating"] = rng
 
-        cur = TEAMS.find(query)
-        items = [ser(x) for x in cur]
-        return jsonify({"items": items, "total": len(items)})
+        total = TEAMS.count_documents(query)
+        items = [ser(x) for x in TEAMS.find(query)]
+        return jsonify({"items": items, "total": total})
 
     # REORDER
     @app.get("/teams/reorder")
@@ -149,6 +147,7 @@ def register_teams_routes(app, db):
         cur = TEAMS.find({}).sort(sort_by, order)
         return jsonify([ser(x) for x in cur])
 
+#--------------- AGREGATIONS ---------------------------------
     @app.get("/teams/aggregations/football_stats")
     def football_team_stats():
         """
