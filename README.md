@@ -46,7 +46,7 @@ Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-t
 
 ---
 The schema of DB: 
-Collections appear in blue; blank tables provide explanations for array fields.
+Collections appear in blue, blank tables provide explanations for array fields.
 
 <img width="2376" height="3463" alt="Untitled diagram-2025-10-11-183748" src="https://github.com/user-attachments/assets/3b48ace4-0007-449c-84af-a7ef5879e6ef" />
 
