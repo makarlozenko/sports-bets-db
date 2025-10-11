@@ -10,17 +10,18 @@ Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-t
     
 * **Team**
 
-  * `coaches`, `players`, `rating`, `sport`, `teamName`
+  * `coaches` : `{firstName, lastName, experienceYears, coachType}`, `players` : `[{firstName, lastName, role, birthDate, achievements : {careerGoalsOrPoints, penaltiesReceived} }]`, `rating`, `sport` : `football | krepsinis`, `teamName`
 * **Matches**
 
-  * `team_1`, `team_2`, `date` (`YYYY-MM-DD`), `matchType`, `sport`
+  * `comand1` : `{name, result : []}, `comand2` : `{name, result : []}, `date` (`YYYY-MM-DD`), `matchType`, `sport`
 * **Bets**
 
   * `userEmail` (references `users.email`)
-  * `event`: `{ team_1, team_2, date }`
-  * `bet`: `{ stake, odds }`
+  * `userId`
+  * `event`: `{team_1, team_2, type, date}`
+  * `bet`: `{stake, odds, choise, team, createdAt}`
   * `status`: `pending | won | lost`
-  *  Rule: one bet per user per event (enforced in code/logic)
+
 
 ## API (main endpoints)
 
