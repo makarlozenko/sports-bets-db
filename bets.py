@@ -1,11 +1,12 @@
 from bson import ObjectId
-from bson.decimal128 import Decimal128
-from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from collections import OrderedDict
 from flask import Response, request, jsonify
 import json
 import re
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from bson.decimal128 import Decimal128
+
 
 YYYY_MM_DD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 VALID_CHOICES = {"winner", "score"}
@@ -190,12 +191,13 @@ def register_bets_routes(app, db):
         cur = BETS.find(query)
         if sort_field:
             cur = cur.sort(sort_field, sort_order)
+        total = BETS.count_documents(query)
         cur = cur.skip(max(0, skip)).limit(max(1, min(limit, 1000)))
 
         items = [ser(x) for x in cur]
         return jsonify({
             "items": items,
-            "total": len(items),
+            "total": total,
             "query": query,
             "sorted_by": sort_field,
             "ascending": ascending,
@@ -257,10 +259,11 @@ def register_bets_routes(app, db):
                 query = {"userEmail": email, **({"$or": query["$or"]} if "$or" in query else {})}
 
         cur = BETS.find(query)
+        total = BETS.count_documents(query)
         items = [ser(x) for x in cur]
         if not items:
             return jsonify({"error": "No bets have been found for this email."}), 404
-        return jsonify({"items": items, "total": len(items)})
+        return jsonify({"items": items, "total": total})
 
     # ---------- CREATE ----------
     VALID_STATUSES = {"pending", "won", "lost"}
@@ -304,13 +307,21 @@ def register_bets_routes(app, db):
 
             # --- stake/odds tipai ir ribos ---
             try:
-                stake = float(bet.get("stake", 0))
-                odds = float(bet.get("odds", 0))
-            except Exception:
-                return jsonify({"message": "Invalid stake/odds types"}), 400
-            if stake <= 0: return jsonify({"message": "stake must be > 0"}), 400
-            if odds <= 1: return jsonify({"message": "odds must be >= 1"}), 400
+                # stake -> Decimal (2 skaitmenys), be float netikslumų
+                stake_dec = Decimal(str(bet.get("stake", 0))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            except (InvalidOperation, TypeError, ValueError):
+                return jsonify({"message": "Invalid bet.stake"}), 400
 
+            try:
+                # odds gali likti float (koeficientai), jei nori – gali daryti ir Decimal
+                odds = float(bet.get("odds", 0))
+            except (TypeError, ValueError):
+                return jsonify({"message": "Invalid bet.odds"}), 400
+
+            if stake_dec <= Decimal("0.00"):
+                return jsonify({"message": "stake must be > 0"}), 400
+            if odds < 1.0:
+                return jsonify({"message": "odds must be >= 1"}), 400
             # --- choice-specifinės validacijos ---
             if choice == "winner":
                 pick_team = _norm_name(bet.get("team"))
@@ -395,7 +406,7 @@ def register_bets_routes(app, db):
                     "type": (event.get("type") or "").strip(),
                     "date": stored_event_date,
                 },
-                "bet": {**bet, "odds": float(odds), "stake": float(stake)},
+                "bet": {**bet, "odds": float(odds), "stake": Decimal128(stake_dec)},
                 "status": status_in,  # <-- dabar galima perduoti; jei nieko – 'pending'
                 "createdAt": datetime.utcnow(),
             }
