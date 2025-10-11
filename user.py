@@ -1,9 +1,8 @@
 from flask import request, jsonify
 from bson import ObjectId
 from bson.decimal128 import Decimal128
-from decimal import Decimal
 from datetime import datetime
-
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 def register_users_routes(app, db):
     USERS = db.User
 
@@ -66,16 +65,13 @@ def register_users_routes(app, db):
             "firstName": "firstName",
             "lastName": "lastName"
         }
-        sort_field = sort_field_map.get(sort_by)
+        sort_field = sort_field_map.get(sort_by) or "_id"
+        order = 1 if ascending else -1
 
-        if sort_field:
-            sort_order = 1 if ascending else -1
-            cur = USERS.find(query).sort(sort_field, sort_order)
-        else:
-            cur = USERS.find(query)
-
+        total = USERS.count_documents(query)  # ← total skaičiuoja Mongo
+        cur = (USERS.find(query).sort(sort_field, order))
         items = [ser(x) for x in cur]
-        return jsonify({"items": items, "total": len(items)})
+        return jsonify({"items": items, "total": total})
 
     @app.get("/users/<id>")
     def get_user(id):
@@ -156,7 +152,6 @@ def register_users_routes(app, db):
                         "message": "User with the same email, nickname, phone number, or IBAN already exists."
                     }), 400
 
-            # 5) papildomi laukai
             # balance → Decimal128 (jei pateiktas)
             if "balance" in raw and raw["balance"] is not None:
                 try:
@@ -170,8 +165,6 @@ def register_users_routes(app, db):
                     data["birthDate"] = datetime.strptime(raw["birthDate"], "%Y-%m-%d")
                 except Exception:
                     return jsonify({"message": "Invalid birthDate format. Use YYYY-MM-DD."}), 400
-
-            # saugokime sukūrimo laiką
             data.setdefault("createdAt", datetime.utcnow())
 
             # 6) įrašymas
@@ -189,7 +182,6 @@ def register_users_routes(app, db):
                 "error": str(e)
             }), 400
 
-    #register_users_routes(app, db)
 
     @app.patch("/users/<id>")
     def patch_user(id):
@@ -201,13 +193,13 @@ def register_users_routes(app, db):
         if not isinstance(payload, dict) or not payload:
             return jsonify({"error": "Empty or invalid body"}), 400
 
-        # Leidžiami laukeliai atnaujinimui — balance mums svarbiausias
+        # Leidžiami laukai atnaujinimui
         allowed = {"firstName", "lastName", "nickname", "phone", "IBAN", "balance", "birthDate"}
         updates = {k: v for k, v in payload.items() if k in allowed}
         if not updates:
             return jsonify({"error": "No allowed fields to update", "allowed": list(allowed)}), 400
 
-        # Normalizacijos / validacijos:
+        # Normalizacijos:
         if "balance" in updates:
             try:
                 updates["balance"] = Decimal128(str(updates["balance"]))
@@ -241,7 +233,6 @@ def register_users_routes(app, db):
         data = request.get_json(silent=True) or {}
         user_id = data.get("userId")
         new_balance = data.get("balance")
-
         if not user_id or new_balance is None:
             return jsonify({"error": "Missing userId or balance"}), 400
 
@@ -249,11 +240,16 @@ def register_users_routes(app, db):
         if not oid:
             return jsonify({"error": "Invalid userId"}), 400
 
-        res = USERS.update_one({"_id": oid}, {"$set": {"balance": Decimal128(str(new_balance))}})
-        if res.modified_count == 0:
-            return jsonify({"error": "No user updated"}), 404
+        try:
+            dec = Decimal(str(new_balance)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        except (InvalidOperation, TypeError, ValueError):
+            return jsonify({"error": "Invalid balance format"}), 400
 
-        return jsonify({"message": "User balance updated", "userId": user_id, "balance": float(new_balance)})
+        res = USERS.update_one({"_id": oid}, {"$set": {"balance": Decimal128(dec)}})
+        if res.matched_count == 0:
+            return jsonify({"error": "User not found"}), 404
+
+        return jsonify({"message": "User balance updated", "userId": user_id, "balance": str(dec)}), 200
 
     @app.get("/users/by_email/<email>")
     def get_user_by_email(email):
