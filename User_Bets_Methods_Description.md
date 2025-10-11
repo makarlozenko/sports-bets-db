@@ -6,7 +6,7 @@ A simple REST API for managing users and bets for sports matches.
 **Base URL**
 
 ```
-http://127.0.0.1:5000
+http://127.0.0.1:5050
 ```
 
 ## Users
