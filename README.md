@@ -23,8 +23,8 @@ Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-t
   * `sport` : `football | krepsinis`, `teamName`
 * **Matches**
 
-  * `comand1` : `{name, result : []},
-  * `comand2` : `{name, result : []},
+  * `comand1` : `{name, result : []}`,
+  * `comand2` : `{name, result : []}`,
   * `date` (`YYYY-MM-DD`),
   * `matchType`,
   * `sport`
