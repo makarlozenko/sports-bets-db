@@ -1,15 +1,12 @@
-#!/usr/bin/env python3
-"""
-Scenario (end-to-end) for your Sports Bets API:
 
+"""
+Scenario (end-to-end):
 Flow:
 1) GET /bets/summary -> print summary for the chosen user (BEFORE)
 2) POST /matches     -> create a new match (print what was created)
 3) POST /bets        -> create a new bet for that user (print what was created)
 4) GET /bets/summary -> print summary for the same user (AFTER) + show deltas
 5) DELETE /bets/<id> -> clean up the just-created bet
-
-Adjust BASE_URL and payloads below as needed.
 """
 
 import sys
@@ -20,14 +17,14 @@ import requests
 
 # ========= CONFIG =========
 BASE_URL = "http://127.0.0.1:5050"
-USER_EMAIL = "aurimas.mikalauskas14@gmail.com"  # <-- CHANGE to an existing user in your DB
+USER_EMAIL = "aurimas.mikalauskas14@gmail.com"  # existing user in DB
 
-# We'll keep teams/date consistent between match and bet
+# teams/date consistent between match and bet
 TEAM_1 = "Kaunas United"
 TEAM_2 = "Klaipeda City"
 MATCH_DATE = "2025-10-08"  # YYYY-MM-DD
 
-# Example match payload. Adjust keys to your API schema if needed.
+# Example match payload
 match_payload = {
   "matchType": "league",
   "sport": "football",
@@ -52,7 +49,7 @@ match_payload = {
   }
 }
 
-# Example bet payload (for the same user & same event as the match)
+# Example bet payload (for the same user and same event as the match)
 bet_payload = {
     "userEmail": USER_EMAIL,
     "event": {
@@ -87,7 +84,8 @@ def get_json(resp: requests.Response) -> Any:
         return {"raw_text": resp.text}
 
 def get_user_summary(email: str) -> Optional[Dict[str, Any]]:
-    """Return the single summary row for the user (userEmail,total_won,total_lost,final_balance), or None."""
+    """Return the single summary row for the user
+    (userEmail, total_won, total_lost, final_balance) or None."""
     url = f"{BASE_URL}/bets/summary"
     resp = requests.get(url, timeout=30)
     data = get_json(resp)
@@ -98,7 +96,7 @@ def get_user_summary(email: str) -> Optional[Dict[str, Any]]:
     return None
 
 def post_match(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """POST /matches; returns response JSON."""
+    """POST /matches"""
     url = f"{BASE_URL}/matches"
     resp = requests.post(url, json=payload, timeout=30)
     return get_json(resp)
@@ -110,7 +108,7 @@ def post_bet(payload: Dict[str, Any]) -> Dict[str, Any]:
     return get_json(resp)
 
 def delete_bet(bet_id: str) -> Dict[str, Any]:
-    """DELETE /bets/<bet_id>; returns response JSON."""
+    """DELETE /bets/<bet_id>"""
     url = f"{BASE_URL}/bets/{bet_id}"
     resp = requests.delete(url, timeout=30)
     return get_json(resp)
