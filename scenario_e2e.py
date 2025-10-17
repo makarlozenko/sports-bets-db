@@ -29,7 +29,7 @@ match_payload = {
   "matchType": "league",
   "sport": "football",
   "date": MATCH_DATE,
-  "comand1": {
+  "team1": {
     "name": TEAM_1,
     "result": {
       "status": "won",
@@ -38,7 +38,7 @@ match_payload = {
       "cards": {"red": 0, "yellow": 2}
     }
   },
-  "comand2": {
+  "team2": {
     "name": TEAM_2,
     "result": {
       "status": "lost",
