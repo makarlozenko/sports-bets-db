@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 import requests
 
-BASE_URL = "http://127.0.0.1:5000"
+BASE_URL = "http://127.0.0.1:5050"
 # Įjungti/įšjungti seedinimą
 SEED_BETS = True
 
@@ -19,8 +19,8 @@ SEED_BETS = True
 # Galima pasirinkti kitą egzistuojantį vartotoją
 # dovydas.sakalauskas5@gmail.com
 # ee576a2c1f82513b2d4b8047
-SEED_USER_ID = "ee576a2c1f82513b2d4b8047"
-SEED_USER_EMAIL = "dovydas.sakalauskas5@gmail.com"
+SEED_USER_ID = "d1449f76f78f46d2ac09d832"
+SEED_USER_EMAIL = "aurimas.mikalauskas14@gmail.com"
 
 # ---------- Pagalbinės užklausos ----------
 def get_json(resp):
@@ -127,19 +127,19 @@ def find_match_for_bet(bet, matches):
         match_date = parse_date(str(m.get("date")))
         if not match_date:
             continue
-        kom1 = m["comand1"]["name"]
-        kom2 = m["comand2"]["name"]
+        kom1 = m["team1"]["name"]
+        kom2 = m["team2"]["name"]
         if match_date == bet_date and team1 == kom1 and team2 == kom2:
             return m
     return None
 
 def get_match_result(match):
     """Grąžina (winner, (goals1, goals2)). winner priklauso {komandos pavadinimas, 'draw', None}."""
-    t1 = match["comand1"]["name"]
-    t2 = match["comand2"]["name"]
+    t1 = match["team1"]["name"]
+    t2 = match["team2"]["name"]
 
-    r1 = match["comand1"].get("result", {}) or {}
-    r2 = match["comand2"].get("result", {}) or {}
+    r1 = match["team1"].get("result", {}) or {}
+    r2 = match["team2"].get("result", {}) or {}
 
     winner = None
     if r1.get("status") == "won":
