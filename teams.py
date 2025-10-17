@@ -152,28 +152,28 @@ def register_teams_routes(app, db):
     def football_team_stats():
         """
         Aggregation: total goals scored/conceded, yellow/red cards for football teams.
-        Works with fields: comand1.name / comand2.name / result.*
+        Works with fields: $team1.name / $team2.name / result.*
         """
         pipeline = [
-            {"$match": {"sport": "football"}},
+            {"$match": {"sport": "football"}},                  #paimamos tik komandos su sporto šaka 'football'
 
-            {"$lookup": {
-                "from": "Matches",
-                "let": {"team_name": "$teamName"},
+            {"$lookup": {                                       # Prijungiame iš 'Matches' kolekcijos rungtynes pagal komandos pavadinimą
+                "from": "Matches",                              # Iš kokios kolekcijos traukti duomenis – 'Matches'
+                "let": {"team_name": "$teamName"},              # 'let' apibrėžia vietinį kintamąjį su šios komandos pavadinimu
                 "pipeline": [
                     {"$match": {
-                        "$expr": {
-                            "$and": [
+                        "$expr": {                              # $expr, kad galėtume lyginti laukus ir kintamuosius.
+                            "$and": [                           # Imame tik tas rungtynes, kurios taip pat 'football'.
                                 {"$eq": ["$sport", "football"]},
                                 {"$or": [
-                                    {"$regexMatch": {"input": "$comand1.name", "regex": "$$team_name", "options": "i"}},
-                                    {"$regexMatch": {"input": "$comand2.name", "regex": "$$team_name", "options": "i"}}
+                                    {"$regexMatch": {"input": "$team1.name", "regex": "$$team_name", "options": "i"}},
+                                    {"$regexMatch": {"input": "$team2.name", "regex": "$$team_name", "options": "i"}}
                                 ]}
                             ]
                         }
                     }}
                 ],
-                "as": "matches"
+                "as": "matches"                                 # Suderinamos rungtynės atsiduria masyve 'matches'.
             }},
 
             {"$unwind": {"path": "$matches", "preserveNullAndEmptyArrays": False}},
@@ -181,37 +181,37 @@ def register_teams_routes(app, db):
             {"$project": {
                 "teamName": 1,
                 "sport": 1,
-                "scored": {
-                    "$cond": [
-                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.comand1.result.goalsFor",
-                        "$matches.comand2.result.goalsFor"
+                "scored": {                                     #   komandos įvarčiai rungtynėse
+                    "$cond": [                                  #    Jei ši komanda buvo '$team1', imame '$team1.result.goalsFor' kitaip 2 komandai
+                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.$team1.result.goalsFor",
+                        "$matches.team2.result.goalsFor"
                     ]
                 },
-                "conceded": {
+                "conceded": {                                    #    Praleisti įvarčiai analogiškai (goalsAgainst):
                     "$cond": [
-                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.comand1.result.goalsAgainst",
-                        "$matches.comand2.result.goalsAgainst"
+                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.$team1.result.goalsAgainst",
+                        "$matches.team2.result.goalsAgainst"
                     ]
                 },
                 "yellow": {
                     "$cond": [
-                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.comand1.result.cards.yellow",
-                        "$matches.comand2.result.cards.yellow"
+                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.$team1.result.cards.yellow",
+                        "$matches.team2.result.cards.yellow"
                     ]
                 },
                 "red": {
                     "$cond": [
-                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.comand1.result.cards.red",
-                        "$matches.comand2.result.cards.red"
+                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.$team1.result.cards.red",
+                        "$matches.team2.result.cards.red"
                     ]
                 }
             }},
 
-            {"$group": {
+            {"$group": {                                        # sugrupuojame pagal komandos pavadinimą
                 "_id": "$teamName",
                 "total_scored": {"$sum": "$scored"},
                 "total_conceded": {"$sum": "$conceded"},
@@ -219,29 +219,29 @@ def register_teams_routes(app, db):
                 "red_cards": {"$sum": "$red"}
             }},
 
-            {"$project": {
+            {"$project": {                                      # Galutinis formavimas:
                 "_id": 0,
                 "teamName": "$_id",
                 "total_scored": 1,
                 "total_conceded": 1,
-                "goal_diff": {"$subtract": ["$total_scored", "$total_conceded"]},
+                "goal_diff": {"$subtract": ["$total_scored", "$total_conceded"]}, # Įvarčių skirtumas = įmušti - praleisti.
                 "yellow_cards": 1,
                 "red_cards": 1
             }}
         ]
 
-        result = list(db.Team.aggregate(pipeline))
-        return jsonify(result)
+        result = list(db.Team.aggregate(pipeline))              # Paleidžiame agregaciją 'Team' kolekcijoje ir paverčiame į sąrašą.
+        return jsonify(result)                                  # Grąžiname JSON atsakymą.
 
 
     @app.get("/teams/aggregations/basketball_stats")
     def basketball_team_stats():
         """
         Aggregation: average fouls per match, total scored/conceded points, and score difference.
-        Works with basketball matches (sport='krepsinis').
+        Works with basketball matches (sport='basketball').
         """
         pipeline = [
-            {"$match": {"sport": "krepsinis"}},
+            {"$match": {"sport": "basketball"}},
 
             {"$lookup": {
                 "from": "Matches",
@@ -250,10 +250,10 @@ def register_teams_routes(app, db):
                     {"$match": {
                         "$expr": {
                             "$and": [
-                                {"$eq": ["$sport", "krepsinis"]},
+                                {"$eq": ["$sport", "basketball"]},
                                 {"$or": [
-                                    {"$regexMatch": {"input": "$comand1.name", "regex": "$$team_name", "options": "i"}},
-                                    {"$regexMatch": {"input": "$comand2.name", "regex": "$$team_name", "options": "i"}}
+                                    {"$regexMatch": {"input": "$team1.name", "regex": "$$team_name", "options": "i"}},
+                                    {"$regexMatch": {"input": "$team2.name", "regex": "$$team_name", "options": "i"}}
                                 ]}
                             ]
                         }
@@ -268,39 +268,39 @@ def register_teams_routes(app, db):
                 "teamName": 1,
                 "scored_points": {
                     "$cond": [
-                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
                         {"$add": [
-                            "$matches.comand1.result.pointsBreakdown.one",
-                            {"$multiply": [2, "$matches.comand1.result.pointsBreakdown.two"]},
-                            {"$multiply": [3, "$matches.comand1.result.pointsBreakdown.three"]}
+                            "$matches.$team1.result.pointsBreakdown.one",
+                            {"$multiply": [2, "$matches.$team1.result.pointsBreakdown.two"]},
+                            {"$multiply": [3, "$matches.$team1.result.pointsBreakdown.three"]}
                         ]},
                         {"$add": [
-                            "$matches.comand2.result.pointsBreakdown.one",
-                            {"$multiply": [2, "$matches.comand2.result.pointsBreakdown.two"]},
-                            {"$multiply": [3, "$matches.comand2.result.pointsBreakdown.three"]}
+                            "$matches.team2.result.pointsBreakdown.one",
+                            {"$multiply": [2, "$matches.team2.result.pointsBreakdown.two"]},
+                            {"$multiply": [3, "$matches.team2.result.pointsBreakdown.three"]}
                         ]}
                     ]
                 },
                 "conceded_points": {
                     "$cond": [
-                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
+                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
                         {"$add": [
-                            "$matches.comand2.result.pointsBreakdown.one",
-                            {"$multiply": [2, "$matches.comand2.result.pointsBreakdown.two"]},
-                            {"$multiply": [3, "$matches.comand2.result.pointsBreakdown.three"]}
+                            "$matches.team2.result.pointsBreakdown.one",
+                            {"$multiply": [2, "$matches.team2.result.pointsBreakdown.two"]},
+                            {"$multiply": [3, "$matches.team2.result.pointsBreakdown.three"]}
                         ]},
                         {"$add": [
-                            "$matches.comand1.result.pointsBreakdown.one",
-                            {"$multiply": [2, "$matches.comand1.result.pointsBreakdown.two"]},
-                            {"$multiply": [3, "$matches.comand1.result.pointsBreakdown.three"]}
+                            "$matches.$team1.result.pointsBreakdown.one",
+                            {"$multiply": [2, "$matches.$team1.result.pointsBreakdown.two"]},
+                            {"$multiply": [3, "$matches.$team1.result.pointsBreakdown.three"]}
                         ]}
                     ]
                 },
                 "fouls": {
                     "$cond": [
-                        {"$regexMatch": {"input": "$matches.comand1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.comand1.result.fouls",
-                        "$matches.comand2.result.fouls"
+                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
+                        "$matches.$team1.result.fouls",
+                        "$matches.team2.result.fouls"
                     ]
                 }
             }},
