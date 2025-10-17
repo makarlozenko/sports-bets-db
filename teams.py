@@ -64,7 +64,7 @@ def register_teams_routes(app, db):
                     "existing_team": ser(duplicate)
                 }), 409  # Conflict
 
-            # --- Insert new team if unique ---
+            # --- Insert new team if unique ----
             res = TEAMS.insert_one(data)
             new_team = TEAMS.find_one({"_id": res.inserted_id})
             return jsonify({
