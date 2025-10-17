@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from collections import OrderedDict
 from flask import Response, request, jsonify
 import json
+from pymongo import ReturnDocument
 import re
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from bson.decimal128 import Decimal128
@@ -14,7 +15,7 @@ VALID_CHOICES = {"winner", "score"}
 def register_bets_routes(app, db):
     BETS = db.Bets
     MATCHES = db.Matches
-
+    USERS = db.User
     # ---------- helpers ----------
     def to_oid(s):
         try:
@@ -305,33 +306,23 @@ def register_bets_routes(app, db):
             if choice not in VALID_CHOICES:
                 return jsonify({"message": "Invalid bet.choice", "allowed": list(VALID_CHOICES)}), 400
 
-            # --- stake/odds tipai ir ribos ---
+            # --- stake tipas ir ribos ---
             try:
-                # stake -> Decimal (2 skaitmenys), be float netikslumų
                 stake_dec = Decimal(str(bet.get("stake", 0))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             except (InvalidOperation, TypeError, ValueError):
                 return jsonify({"message": "Invalid bet.stake"}), 400
-
-            try:
-                # odds gali likti float (koeficientai), jei nori – gali daryti ir Decimal
-                odds = float(bet.get("odds", 0))
-            except (TypeError, ValueError):
-                return jsonify({"message": "Invalid bet.odds"}), 400
-
             if stake_dec <= Decimal("0.00"):
                 return jsonify({"message": "stake must be > 0"}), 400
-            if odds < 1.0:
-                return jsonify({"message": "odds must be >= 1"}), 400
+
             # --- choice-specifinės validacijos ---
             if choice == "winner":
                 pick_team = _norm_name(bet.get("team"))
                 if not pick_team:
                     return jsonify({"message": "For choice='winner' you must provide bet.team"}), 400
-
             if choice == "score":
                 score = bet.get("score") or {}
                 try:
-                    s1 = int(score.get("team_1"))
+                    s1 = int(score.get("team_1"));
                     s2 = int(score.get("team_2"))
                 except Exception:
                     return jsonify({
@@ -339,15 +330,12 @@ def register_bets_routes(app, db):
                 if s1 < 0 or s2 < 0:
                     return jsonify({"message": "score values must be >= 0"}), 400
 
-            # --- status (pasirenkamas; default 'pending') ---
+            # --- status ---
             status_in = (payload.get("status") or "").strip().lower()
             if not status_in:
                 status_in = "pending"
             elif status_in not in VALID_STATUSES:
-                return jsonify({
-                    "message": "Invalid status",
-                    "allowed": sorted(list(VALID_STATUSES))
-                }), 400
+                return jsonify({"message": "Invalid status", "allowed": sorted(list(VALID_STATUSES))}), 400
 
             # --- Match lookup (Date + String) ---
             day_start_aware = datetime(event_dt.year, event_dt.month, event_dt.day, tzinfo=timezone.utc)
@@ -365,7 +353,6 @@ def register_bets_routes(app, db):
                     {"team1.name": team_1, "team2.name": team_2, "date": eq_date_str},
                     {"team1.name": team_2, "team2.name": team_1, "date": eq_date_str},
                 ]
-
             match_doc = MATCHES.find_one({"$or": match_query_or})
             if not match_doc:
                 return jsonify({"message": "No such match has been found for given teams and date."}), 400
@@ -388,15 +375,32 @@ def register_bets_routes(app, db):
                     "$or": dup_or,
                     "event.date": eq_date_str,
                 })
-            duplicate = BETS.find_one({"$or": dup_query_or})
-            if duplicate:
+            if BETS.find_one({"$or": dup_query_or}):
                 return jsonify({
                                    "message": "Duplicate bet: you have already placed this type of bet for these teams on this date."}), 400
 
-            # --- saugojimui paruošta data ---
+            # --- paruošta data saugojimui ---
             stored_event_date = _storage_date(event_date_raw, event_dt)
 
+            # ================================
+            # BALANSO TIKRINIMAS IR NURAŠYMAS
+            # ================================
+            stake_dec128 = Decimal128(stake_dec)
+
+            # vartotojo selektorius pagal _id arba email
+            selector = {"_id": user_id} if user_id else {"email": user_email}
+
+            # atomic: nurašom tik jei balance ≥ stake (abi Decimal128)
+            user_after = USERS.find_one_and_update(
+                {**selector, "balance": {"$gte": stake_dec128}},
+                {"$inc": {"balance": Decimal128(-stake_dec)}},  # nurašom
+                return_document=ReturnDocument.AFTER
+            )
+            if not user_after:
+                return jsonify({"message": "Insufficient balance or user not found."}), 400
+
             # --- dokumento konstravimas ---
+            bet_clean = {k: v for k, v in (bet or {}).items() if k != "odds"}
             doc = {
                 "userEmail": user_email,
                 "userId": user_id,
@@ -406,12 +410,18 @@ def register_bets_routes(app, db):
                     "type": (event.get("type") or "").strip(),
                     "date": stored_event_date,
                 },
-                "bet": {**bet, "odds": float(odds), "stake": Decimal128(stake_dec)},
-                "status": status_in,  # <-- dabar galima perduoti; jei nieko – 'pending'
+                "bet": {**bet_clean, "stake": stake_dec128},
+                "status": status_in,
                 "createdAt": datetime.utcnow(),
             }
 
-            res = BETS.insert_one(doc)
+            try:
+                res = BETS.insert_one(doc)
+            except Exception as insert_err:
+                # kompensacija: grąžinam pinigus jei įrašas nepavyko
+                USERS.update_one(selector, {"$inc": {"balance": stake_dec128}})
+                raise insert_err
+
             new_bet = BETS.find_one({"_id": res.inserted_id})
             return jsonify({"message": "Bet added successfully.", "bet": ser(new_bet)}), 201
 
@@ -434,22 +444,121 @@ def register_bets_routes(app, db):
     def bet_summary():
         try:
             pipeline = [
+                {"$match": {"status": {"$in": ["won", "lost"]}}},
+
+                {"$addFields": {
+                    "betDateStr": {
+                        "$cond": [
+                            {"$eq": [{"$type": "$event.date"}, "date"]},
+                            {"$dateToString": {"format": "%Y-%m-%d", "date": "$event.date", "timezone": "UTC"}},
+                            "$event.date"
+                        ]
+                    },
+                    "t1l": {"$toLower": "$event.team_1"},
+                    "t2l": {"$toLower": "$event.team_2"},
+                    "typel": {
+                        "$cond": [
+                            {"$gt": [{"$strLenCP": {"$ifNull": ["$event.type", ""]}}, 0]},
+                            {"$toLower": "$event.type"},
+                            ""
+                        ]
+                    }
+                }},
+
+                # SVARBU: from = "Matches"
+                {"$lookup": {
+                    "from": "Matches",
+                    "let": {"d": "$betDateStr", "t1l": "$t1l", "t2l": "$t2l", "typel": "$typel"},
+                    "pipeline": [
+                        {"$addFields": {
+                            "team1l": {"$toLower": "$team1.name"},
+                            "team2l": {"$toLower": "$team2.name"},
+                            "matchTypel": {"$toLower": {"$ifNull": ["$matchType", ""]}}
+                        }},
+                        {"$match": {
+                            "$expr": {
+                                "$and": [
+                                    {"$eq": ["$date", "$$d"]},
+                                    {"$or": [
+                                        {"$and": [{"$eq": ["$team1l", "$$t1l"]}, {"$eq": ["$team2l", "$$t2l"]}]},
+                                        {"$and": [{"$eq": ["$team1l", "$$t2l"]}, {"$eq": ["$team2l", "$$t1l"]}]}
+                                    ]},
+                                    {"$or": [
+                                        {"$eq": ["$$typel", ""]},
+                                        {"$eq": ["$matchTypel", "$$typel"]}
+                                    ]}
+                                ]
+                            }
+                        }},
+                        {"$project": {"_id": 0, "odds": 1}}
+                    ],
+                    "as": "match"
+                }},
+
+                # Jei nerado rungtynių – odds = 0 (kad win_amount nesusidarytų klaidingai)
+                {"$addFields": {
+                    "oddsRaw": {"$ifNull": [{"$first": "$match.odds"}, 0]}
+                }},
+
+                # Į Decimal prieš daugybą
+                {"$addFields": {
+                    "stakeDec": {
+                        "$cond": [
+                            {"$eq": [{"$type": "$bet.stake"}, "decimal"]},
+                            "$bet.stake",
+                            {"$toDecimal": "$bet.stake"}
+                        ]
+                    },
+                    "oddsDec": {
+                        "$cond": [
+                            {"$eq": [{"$type": "$oddsRaw"}, "decimal"]},
+                            "$oddsRaw",
+                            {"$toDecimal": "$oddsRaw"}
+                        ]
+                    }
+                }},
+
                 {"$group": {
                     "_id": "$userEmail",
-                    "total_won": {"$sum": {
-                        "$cond": [{"$eq": ["$status", "won"]}, {"$multiply": ["$bet.stake", "$bet.odds"]}, 0]}},
-                    "total_lost": {"$sum": {
-                        "$cond": [{"$eq": ["$status", "lost"]}, {"$multiply": ["$bet.stake", "$bet.odds"]}, 0]}},
+                    "staked": {"$sum": "$stakeDec"},
+                    "won_amount": {"$sum": {
+                        "$cond": [
+                            {"$eq": ["$status", "won"]},
+                            {"$multiply": ["$stakeDec", "$oddsDec"]},
+                            0
+                        ]
+                    }},
+                    "lost_amount": {"$sum": {
+                        "$cond": [
+                            {"$eq": ["$status", "lost"]},
+                            "$stakeDec",
+                            0
+                        ]
+                    }},
+                    "won_bets": {"$sum": {"$cond": [{"$eq": ["$status", "won"]}, 1, 0]}},
+                    "lost_bets": {"$sum": {"$cond": [{"$eq": ["$status", "lost"]}, 1, 0]}}
                 }},
+
                 {"$project": {
                     "_id": 0,
                     "userEmail": "$_id",
-                    "total_won": {"$toDouble": {"$round": ["$total_won", 2]}},
-                    "total_lost": {"$toDouble": {"$round": ["$total_lost", 2]}},
-                    "final_balance": {"$toDouble": {"$round": [{"$subtract": ["$total_won", "$total_lost"]}, 2]}}
+                    "staked": {"$toDouble": {"$round": ["$staked", 2]}},
+                    "won_amount": {"$toDouble": {"$round": ["$won_amount", 2]}},
+                    "lost_amount": {"$toDouble": {"$round": ["$lost_amount", 2]}},
+                    "won_bets": 1,
+                    "lost_bets": 1,
+                    "profit": {
+                        "$toDouble": {
+                            "$round": [
+                                {"$subtract": ["$won_amount", "$staked"]},
+                                2
+                            ]
+                        }
+                    }
                 }}
             ]
-            return jsonify(list(BETS.aggregate(pipeline)))
+            return jsonify(list(BETS.aggregate(pipeline))), 200
+
         except Exception as e:
             return jsonify({"error": "Failed to generate summary", "details": str(e)}), 500
 

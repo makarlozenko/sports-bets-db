@@ -2,6 +2,8 @@ from flask import request, jsonify
 from bson import ObjectId
 from datetime import datetime
 from dateutil import parser
+from bson.decimal128 import Decimal128
+from decimal import Decimal
 def register_matches_routes(app, db):
     MATCHES = db.Matches   # collection
 
@@ -31,32 +33,52 @@ def register_matches_routes(app, db):
                 d[k] = [ser(x) if isinstance(x, dict) else x for x in v]
         return d
 
+    def ser_mongo(x):
+        if isinstance(x, dict):
+            return {k: ser_mongo(v) for k, v in x.items()}
+        if isinstance(x, list):
+            return [ser_mongo(v) for v in x]
+        if isinstance(x, ObjectId):
+            return str(x)
+        if isinstance(x, datetime):
+            return x.isoformat() + "Z"
+        if isinstance(x, Decimal128):
+            # kaip tekstą, kad nelaužytume tikslumo
+            return str(x.to_decimal())
+        if isinstance(x, Decimal):
+            return str(x)
+        return x
+
     # ---------------------- CRUD ----------------------
     @app.get("/matches")
     def list_matches():
-        sport = request.args.get("sport")
-        date_from = parse_dt(request.args.get("from"))
-        date_to = parse_dt(request.args.get("to"))
+        try:
+            sport = request.args.get("sport")
+            date_from = parse_dt(request.args.get("from"))
+            date_to = parse_dt(request.args.get("to"))
 
-        sort_by = request.args.get("sort_by", "date")
-        ascending = request.args.get("ascending", "false").lower() == "true"
-        order = 1 if ascending else -1
+            sort_by = request.args.get("sort_by", "date")
+            ascending = request.args.get("ascending", "false").lower() == "true"
+            order = 1 if ascending else -1
 
-        query = {}
-        if sport:
-            query["sport"] = sport
-        if date_from or date_to:
-            date_query = {}
-            if date_from: date_query["$gte"] = date_from
-            if date_to:   date_query["$lte"] = date_to
-            query["date"] = date_query
+            query = {}
+            if sport:
+                query["sport"] = sport
+            if date_from or date_to:
+                date_query = {}
+                if date_from: date_query["$gte"] = date_from
+                if date_to:   date_query["$lte"] = date_to
+                query["date"] = date_query
 
-        total = MATCHES.count_documents(query)
-        cur = (MATCHES.find(query)
-               .sort(sort_by, order))
-        items = [ser(x) for x in cur]
+            total = MATCHES.count_documents(query)
+            cur = MATCHES.find(query).sort(sort_by, order)
 
-        return jsonify({"items": items, "total": total})
+            # NAUJA: rekursyviai serializuojame kiekvieną dokumentą
+            items = [ser_mongo(doc) for doc in cur]
+
+            return jsonify({"items": items, "total": total}), 200
+        except Exception as e:
+            return jsonify({"message": "Failed to list matches.", "error": str(e)}), 400
 
     @app.get("/matches/<id>")
     def get_match(id):
