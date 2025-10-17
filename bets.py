@@ -7,6 +7,8 @@ from pymongo import ReturnDocument
 import re
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from bson.decimal128 import Decimal128
+import redis
+import time
 
 
 YYYY_MM_DD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -278,6 +280,7 @@ def register_bets_routes(app, db):
             user_id = payload.get("userId")
             event = payload.get("event") or {}
             bet = payload.get("bet") or {}
+            request_id = payload.get("requestId")
 
             team_1 = _norm_name(event.get("team_1"))
             team_2 = _norm_name(event.get("team_2"))
@@ -300,6 +303,10 @@ def register_bets_routes(app, db):
                     user_id = ObjectId(user_id)
                 except Exception:
                     return jsonify({"message": "Invalid userId format"}), 400
+
+            if request_id:
+                if db.Bets.find_one({"requestId": request_id}):
+                    return jsonify({"message": "Duplicate request detected"}), 409
 
             # --- choice validacija ---
             choice = bet.get("choice")
@@ -337,94 +344,102 @@ def register_bets_routes(app, db):
             elif status_in not in VALID_STATUSES:
                 return jsonify({"message": "Invalid status", "allowed": sorted(list(VALID_STATUSES))}), 400
 
-            # --- Match lookup (Date + String) ---
-            day_start_aware = datetime(event_dt.year, event_dt.month, event_dt.day, tzinfo=timezone.utc)
-            day_end_aware = day_start_aware + timedelta(days=1)
-            day_start_nv = day_start_aware.replace(tzinfo=None)
-            day_end_nv = day_end_aware.replace(tzinfo=None)
-            eq_date_str = event_date_raw.strip() if isinstance(event_date_raw, str) else None
+            lock_name = f"user:{str(user_id or user_email)}"
+            if not acquire_lock(lock_name, timeout=5000):
+                return jsonify({"message": "User is busy, please try again."}), 429
 
-            match_query_or = [
-                {"team1.name": team_1, "team2.name": team_2, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
-                {"team1.name": team_2, "team2.name": team_1, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
-            ]
-            if eq_date_str and YYYY_MM_DD_RE.match(eq_date_str):
-                match_query_or += [
-                    {"team1.name": team_1, "team2.name": team_2, "date": eq_date_str},
-                    {"team1.name": team_2, "team2.name": team_1, "date": eq_date_str},
+            try:
+                # --- Match lookup (Date + String) ---
+                day_start_aware = datetime(event_dt.year, event_dt.month, event_dt.day, tzinfo=timezone.utc)
+                day_end_aware = day_start_aware + timedelta(days=1)
+                day_start_nv = day_start_aware.replace(tzinfo=None)
+                day_end_nv = day_end_aware.replace(tzinfo=None)
+                eq_date_str = event_date_raw.strip() if isinstance(event_date_raw, str) else None
+
+                match_query_or = [
+                    {"team1.name": team_1, "team2.name": team_2, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
+                    {"team1.name": team_2, "team2.name": team_1, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
                 ]
-            match_doc = MATCHES.find_one({"$or": match_query_or})
-            if not match_doc:
-                return jsonify({"message": "No such match has been found for given teams and date."}), 400
+                if eq_date_str and YYYY_MM_DD_RE.match(eq_date_str):
+                    match_query_or += [
+                        {"team1.name": team_1, "team2.name": team_2, "date": eq_date_str},
+                        {"team1.name": team_2, "team2.name": team_1, "date": eq_date_str},
+                    ]
+                match_doc = MATCHES.find_one({"$or": match_query_or})
+                if not match_doc:
+                    return jsonify({"message": "No such match has been found for given teams and date."}), 400
 
-            # --- Duplicate (Date + String) ---
-            dup_or = [
-                {"event.team_1": team_1, "event.team_2": team_2},
-                {"event.team_1": team_2, "event.team_2": team_1},
-            ]
-            dup_query_or = [{
-                "userEmail": user_email,
-                "bet.choice": choice,
-                "$or": dup_or,
-                "event.date": {"$gte": day_start_nv, "$lt": day_end_nv},
-            }]
-            if eq_date_str and YYYY_MM_DD_RE.match(eq_date_str):
-                dup_query_or.append({
+                # --- Duplicate (Date + String) ---
+                dup_or = [
+                    {"event.team_1": team_1, "event.team_2": team_2},
+                    {"event.team_1": team_2, "event.team_2": team_1},
+                ]
+                dup_query_or = [{
                     "userEmail": user_email,
                     "bet.choice": choice,
                     "$or": dup_or,
-                    "event.date": eq_date_str,
-                })
-            if BETS.find_one({"$or": dup_query_or}):
-                return jsonify({
-                                   "message": "Duplicate bet: you have already placed this type of bet for these teams on this date."}), 400
+                    "event.date": {"$gte": day_start_nv, "$lt": day_end_nv},
+                }]
+                if eq_date_str and YYYY_MM_DD_RE.match(eq_date_str):
+                    dup_query_or.append({
+                        "userEmail": user_email,
+                        "bet.choice": choice,
+                        "$or": dup_or,
+                        "event.date": eq_date_str,
+                    })
+                if BETS.find_one({"$or": dup_query_or}):
+                    return jsonify({
+                                       "message": "Duplicate bet: you have already placed this type of bet for these teams on this date."}), 400
 
-            # --- paruošta data saugojimui ---
-            stored_event_date = _storage_date(event_date_raw, event_dt)
+                # --- paruošta data saugojimui ---
+                stored_event_date = _storage_date(event_date_raw, event_dt)
 
-            # ================================
-            # BALANSO TIKRINIMAS IR NURAŠYMAS
-            # ================================
-            stake_dec128 = Decimal128(stake_dec)
+                # ================================
+                # BALANSO TIKRINIMAS IR NURAŠYMAS
+                # ================================
+                stake_dec128 = Decimal128(stake_dec)
 
-            # vartotojo selektorius pagal _id arba email
-            selector = {"_id": user_id} if user_id else {"email": user_email}
+                # vartotojo selektorius pagal _id arba email
+                selector = {"_id": user_id} if user_id else {"email": user_email}
 
-            # atomic: nurašom tik jei balance ≥ stake (abi Decimal128)
-            user_after = USERS.find_one_and_update(
-                {**selector, "balance": {"$gte": stake_dec128}},
-                {"$inc": {"balance": Decimal128(-stake_dec)}},  # nurašom
-                return_document=ReturnDocument.AFTER
-            )
-            if not user_after:
-                return jsonify({"message": "Insufficient balance or user not found."}), 400
+                # atomic: nurašom tik jei balance ≥ stake (abi Decimal128)
+                user_after = USERS.find_one_and_update(
+                    {**selector, "balance": {"$gte": stake_dec128}},
+                    {"$inc": {"balance": Decimal128(-stake_dec)}},  # nurašom
+                    return_document=ReturnDocument.AFTER
+                )
+                if not user_after:
+                    return jsonify({"message": "Insufficient balance or user not found."}), 400
 
-            # --- dokumento konstravimas ---
-            bet_clean = {k: v for k, v in (bet or {}).items() if k != "odds"}
-            doc = {
-                "userEmail": user_email,
-                "userId": user_id,
-                "event": {
-                    "team_1": team_1,
-                    "team_2": team_2,
-                    "type": (event.get("type") or "").strip(),
-                    "date": stored_event_date,
-                },
-                "bet": {**bet_clean, "stake": stake_dec128},
-                "status": status_in,
-                "createdAt": datetime.utcnow(),
-            }
+                # --- dokumento konstravimas ---
+                bet_clean = {k: v for k, v in (bet or {}).items() if k != "odds"}
+                doc = {
+                    "userEmail": user_email,
+                    "userId": user_id,
+                    "event": {
+                        "team_1": team_1,
+                        "team_2": team_2,
+                        "type": (event.get("type") or "").strip(),
+                        "date": stored_event_date,
+                    },
+                    "bet": {**bet_clean, "stake": stake_dec128},
+                    "status": status_in,
+                    "createdAt": datetime.utcnow(),
+                }
 
-            try:
-                res = BETS.insert_one(doc)
-            except Exception as insert_err:
-                # kompensacija: grąžinam pinigus jei įrašas nepavyko
-                USERS.update_one(selector, {"$inc": {"balance": stake_dec128}})
-                raise insert_err
+                try:
+                    res = BETS.insert_one(doc)
+                except Exception as insert_err:
+                    # kompensacija: grąžinam pinigus jei įrašas nepavyko
+                    USERS.update_one(selector, {"$inc": {"balance": stake_dec128}})
+                    raise insert_err
 
-            new_bet = BETS.find_one({"_id": res.inserted_id})
-            return jsonify({"message": "Bet added successfully.", "bet": ser(new_bet)}), 201
+                new_bet = BETS.find_one({"_id": res.inserted_id})
+                return jsonify({"message": "Bet added successfully.", "bet": ser(new_bet)}), 201
 
+            finally:
+                # Всегда освобождаем лок
+                release_lock(lock_name)
         except Exception as e:
             return jsonify({"message": "Failed to add bet.", "error": str(e)}), 400
 
@@ -577,3 +592,19 @@ def register_bets_routes(app, db):
         if res.modified_count == 0:
             return jsonify({"error": "No bet updated"}), 404
         return jsonify({"message": "Bet status updated", "betId": bet_id, "status": status})
+
+    r = redis.Redis(host='localhost', port=6379, db=0)
+
+    def acquire_lock(lock_name, timeout=5000):
+        """Пытаемся получить лок. Возвращает True/False."""
+        key = f"lock:{lock_name}"
+        end = time.time() + timeout / 1000
+        while time.time() < end:
+            if r.set(key, "1", nx=True, px=timeout):
+                return True
+            time.sleep(0.05)
+        return False
+
+    def release_lock(lock_name):
+        """Снимаем лок."""
+        r.delete(f"lock:{lock_name}")
