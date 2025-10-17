@@ -3,9 +3,10 @@ from bson import ObjectId
 from datetime import datetime
 from dateutil import parser
 from bson.decimal128 import Decimal128
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 def register_matches_routes(app, db):
     MATCHES = db.Matches   # collection
+    TEAMS = db.Teams
 
     def to_oid(s):
         try:
@@ -91,25 +92,104 @@ def register_matches_routes(app, db):
             return jsonify({"error": "Not found"}), 404
         return jsonify(ser(doc))
 
+    #----------- POST ----------------
+    FORM_N_GAMES = 10
+    SMOOTH_ALPHA = 1.0
+    DEFAULT_RATING = 1500
+    LOGISTIC_SCALE = 400.0
+    FORM_WEIGHT = 0.6  # kiek svarbi forma prieš rating
+    MARGIN = Decimal("1.06")
+    ODDS_MIN = Decimal("0.50")  # prašei: ne mažiau kaip 0.50
+    ODDS_MAX = Decimal("10.00")  # ir ne daugiau kaip 10.00
+
+    def _q2(x) -> Decimal:
+        return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def _team_form_winrate(team_name: str) -> float:
+        """
+        Win-rate su Laplace švelninimu iš paskutinių N rungtynių:
+        (wins + 0.5*draws + alpha) / (games + 2*alpha).
+        Jei istorijos nėra — 0.5 (neutraliai).
+        """
+        cursor = (MATCHES.find({
+            "$or": [{"team1.name": team_name}, {"team2.name": team_name}]
+        }).sort("date", -1).limit(FORM_N_GAMES))
+
+        wins = draws = games = 0
+        for m in cursor:
+            if m.get("team1", {}).get("name") == team_name:
+                st = (m.get("team1", {}).get("result") or {}).get("status")
+            else:
+                st = (m.get("team2", {}).get("result") or {}).get("status")
+            if not st:
+                continue
+            games += 1
+            s = str(st).lower()
+            if s == "win":
+                wins += 1
+            elif s == "draw":
+                draws += 1
+
+        num = wins + 0.5 * draws + SMOOTH_ALPHA
+        den = games + 2 * SMOOTH_ALPHA
+        return float(num / den) if den > 0 else 0.5
+
+    def _rating_prob(team1: str, team2: str) -> float:
+        """
+        Tikimybė pagal rating skirtumą (Bradley–Terry / Elo logit).
+        """
+        t1 = TEAMS.find_one({"name": team1}) or {}
+        t2 = TEAMS.find_one({"name": team2}) or {}
+        r1 = float(t1.get("rating", DEFAULT_RATING))
+        r2 = float(t2.get("rating", DEFAULT_RATING))
+        diff = r1 - r2
+        return 1.0 / (1.0 + 10.0 ** (-diff / LOGISTIC_SCALE))
+
+    def _compute_probs(team1: str, team2: str) -> tuple[float, float]:
+        """
+        Mišinys: p1 = w*form1 + (1-w)*rating_prob; p2 = 1 - p1.
+        (lygiosios ignoruojamos paprastumo dėlei)
+        """
+        f1 = _team_form_winrate(team1)
+        f2 = _team_form_winrate(team2)
+        if f1 + f2 > 0:
+            s = f1 + f2
+            f1, f2 = f1 / s, f2 / s
+        else:
+            f1 = f2 = 0.5
+
+        pr1 = _rating_prob(team1, team2)
+        p1 = FORM_WEIGHT * f1 + (1.0 - FORM_WEIGHT) * pr1
+        p1 = max(0.001, min(0.999, p1))  # apsauga nuo kraštutinumų
+        p2 = 1.0 - p1
+        return p1, p2
+
+    def _odds_from_prob(p: float) -> Decimal:
+        """odds = 1/p, + margin, ribos [0.50, 10.00], apvalinta iki 2 d.p."""
+        o = Decimal(1.0 / max(1e-9, p)) * MARGIN
+        o = max(ODDS_MIN, min(ODDS_MAX, o))
+        return _q2(o)
+
     @app.post("/matches")
     def create_match():
-        """Add new match (prevent duplicates)."""
+        """Sukurti naują match (su dubliavimo patikra) ir automatiškai paskaičiuoti odds."""
         try:
             data = request.get_json(silent=True) or {}
             now = datetime.utcnow()
             data.setdefault("created_at", now)
             data.setdefault("updated_at", now)
 
-            # --- duplicate check ---
+            # --- privalomi laukai ---
             sport = data.get("sport")
             match_type = data.get("matchType")
             date = data.get("date")
-            team1 = data.get("team1", {}).get("name")
-            team2 = data.get("team2", {}).get("name")
+            team1 = (data.get("team1") or {}).get("name")
+            team2 = (data.get("team2") or {}).get("name")
 
             if not all([sport, match_type, date, team1, team2]):
                 return jsonify({"error": "Missing required match fields"}), 400
 
+            # --- dubliavimo patikra ---
             duplicate = MATCHES.find_one({
                 "sport": sport,
                 "matchType": match_type,
@@ -117,17 +197,25 @@ def register_matches_routes(app, db):
                 "team1.name": team1,
                 "team2.name": team2
             })
-
             if duplicate:
                 return jsonify({
                     "error": "Duplicate match already exists for this date and teams",
-                    "existing_match": ser(duplicate)
+                    "existing_match": ser_mongo(duplicate)
                 }), 409
 
-            # --- insert if unique ---
+            # --- auto-odds (forma + rating) ---
+            p1, p2 = _compute_probs(team1, team2)
+            o1 = _odds_from_prob(p1)
+            o2 = _odds_from_prob(p2)
+
+            # Įrašom abi puses, o į "odds" dedam underdogo koefą (didesnį)
+            data["oddsDetail"] = {"team1": Decimal128(o1), "team2": Decimal128(o2)}
+            data["odds"] = Decimal128(max(o1, o2))
+
+            # --- įrašymas ---
             res = MATCHES.insert_one(data)
             new_doc = MATCHES.find_one({"_id": res.inserted_id})
-            return jsonify({"message": "Match added", "match": ser(new_doc)}), 201
+            return jsonify({"message": "Match added", "match": ser_mongo(new_doc)}), 201
 
         except Exception as e:
             return jsonify({"error": str(e)}), 400
