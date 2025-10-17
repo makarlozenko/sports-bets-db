@@ -357,13 +357,13 @@ def register_bets_routes(app, db):
             eq_date_str = event_date_raw.strip() if isinstance(event_date_raw, str) else None
 
             match_query_or = [
-                {"comand1.name": team_1, "comand2.name": team_2, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
-                {"comand1.name": team_2, "comand2.name": team_1, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
+                {"team1.name": team_1, "team2.name": team_2, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
+                {"team1.name": team_2, "team2.name": team_1, "date": {"$gte": day_start_nv, "$lt": day_end_nv}},
             ]
             if eq_date_str and YYYY_MM_DD_RE.match(eq_date_str):
                 match_query_or += [
-                    {"comand1.name": team_1, "comand2.name": team_2, "date": eq_date_str},
-                    {"comand1.name": team_2, "comand2.name": team_1, "date": eq_date_str},
+                    {"team1.name": team_1, "team2.name": team_2, "date": eq_date_str},
+                    {"team1.name": team_2, "team2.name": team_1, "date": eq_date_str},
                 ]
 
             match_doc = MATCHES.find_one({"$or": match_query_or})

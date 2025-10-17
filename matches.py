@@ -82,18 +82,18 @@ def register_matches_routes(app, db):
             sport = data.get("sport")
             match_type = data.get("matchType")
             date = data.get("date")
-            comand1 = data.get("comand1", {}).get("name")
-            comand2 = data.get("comand2", {}).get("name")
+            team1 = data.get("team1", {}).get("name")
+            team2 = data.get("team2", {}).get("name")
 
-            if not all([sport, match_type, date, comand1, comand2]):
+            if not all([sport, match_type, date, team1, team2]):
                 return jsonify({"error": "Missing required match fields"}), 400
 
             duplicate = MATCHES.find_one({
                 "sport": sport,
                 "matchType": match_type,
                 "date": date,
-                "comand1.name": comand1,
-                "comand2.name": comand2
+                "team1.name": team1,
+                "team2.name": team2
             })
 
             if duplicate:
@@ -152,8 +152,8 @@ def register_matches_routes(app, db):
             query["sport"] = sport
         if team:
             query["$or"] = [
-                {"comand1.name": {"$regex": team, "$options": "i"}},
-                {"comand2.name": {"$regex": team, "$options": "i"}}
+                {"team1.name": {"$regex": team, "$options": "i"}},
+                {"team2.name": {"$regex": team, "$options": "i"}}
             ]
         if date_from or date_to:
             date_query = {}
