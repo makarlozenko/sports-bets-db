@@ -227,6 +227,8 @@ def register_matches_routes(app, db):
             new_doc = MATCHES.find_one({"_id": res.inserted_id})
 
             invalidate_pattern("matches:list:*")
+            invalidate_pattern("matches_filter:*")
+            invalidate_pattern("matches_reorder:*")
 
             return jsonify({"message": "Match added", "match": ser_mongo(new_doc)}), 201
 
@@ -246,6 +248,8 @@ def register_matches_routes(app, db):
             return jsonify({"error": "Not found"}), 404
 
         invalidate_pattern("matches:list:*")
+        invalidate_pattern("matches_filter:*")
+        invalidate_pattern("matches_reorder:*")
 
         return jsonify(ser(MATCHES.find_one({"_id": oid})))
 
@@ -260,6 +264,8 @@ def register_matches_routes(app, db):
             return jsonify({"error": "Not found"}), 404
 
         invalidate_pattern("matches:list:*")
+        invalidate_pattern("matches_filter:*")
+        invalidate_pattern("matches_reorder:*")
 
         return jsonify({"deleted": True, "_id": id})
 
