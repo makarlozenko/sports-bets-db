@@ -80,6 +80,8 @@ def register_teams_routes(app, db):
 
             invalidate_pattern("teams:list:*")
             invalidate_pattern("teams:aggregations:*")
+            invalidate_pattern("teams:filter:*")
+            invalidate_pattern("teams:reorder:*")
 
             return jsonify({
                 "message": "Team added successfully",
@@ -117,6 +119,8 @@ def register_teams_routes(app, db):
 
         invalidate_pattern("teams:list:*")
         invalidate_pattern("teams:aggregations:*")
+        invalidate_pattern("teams:filter:*")
+        invalidate_pattern("teams:reorder:*")
 
         return jsonify(ser(TEAMS.find_one({"_id": oid}))), 200
 
@@ -132,6 +136,8 @@ def register_teams_routes(app, db):
 
         invalidate_pattern("teams:list:*")
         invalidate_pattern("teams:aggregations:*")
+        invalidate_pattern("teams:filter:*")
+        invalidate_pattern("teams:reorder:*")
 
         return jsonify({"deleted": True, "_id": id}), 200
 
