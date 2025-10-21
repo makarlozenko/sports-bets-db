@@ -10,6 +10,8 @@ from bson.decimal128 import Decimal128
 import redis
 import time
 
+from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
+
 
 YYYY_MM_DD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 VALID_CHOICES = {"winner", "score"}
@@ -112,6 +114,17 @@ def register_bets_routes(app, db):
 
         ascending = ascending_str in ("1", "true", "yes", "y")
 
+        params_tuple = (
+            status, sort_by, ascending, team,
+            event_start, event_end, created_start, created_end,
+            limit, skip
+        )
+        cache_key = "bets:list:" + ":".join([str(p) for p in params_tuple if p is not None])
+
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
+
         query = {}
 
         if status:
@@ -198,7 +211,7 @@ def register_bets_routes(app, db):
         cur = cur.skip(max(0, skip)).limit(max(1, min(limit, 1000)))
 
         items = [ser(x) for x in cur]
-        return jsonify({
+        result = {
             "items": items,
             "total": total,
             "query": query,
@@ -206,7 +219,11 @@ def register_bets_routes(app, db):
             "ascending": ascending,
             "limit": limit,
             "skip": skip
-        })
+        }
+
+        cache_set_json(cache_key, result, ttl=45)
+
+        return jsonify(result), 200
 
     # ---------- BY EMAIL ----------
     @app.get("/bets/by_email/<email>")
@@ -215,6 +232,11 @@ def register_bets_routes(app, db):
         team        = request.args.get("team")
         start_date  = request.args.get("start_date")
         end_date    = request.args.get("end_date")
+
+        cache_key = f"bets_by_email:{email}:{status or 'all'}:{team or 'any'}:{start_date or 'none'}:{end_date or 'none'}"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
 
         query = {"userEmail": email}
 
@@ -266,7 +288,11 @@ def register_bets_routes(app, db):
         items = [ser(x) for x in cur]
         if not items:
             return jsonify({"error": "No bets have been found for this email."}), 404
-        return jsonify({"items": items, "total": total})
+        result = {"items": items, "total": total}
+
+        cache_set_json(cache_key, result, ttl=45)
+
+        return jsonify(result), 200
 
     # ---------- CREATE ----------
     VALID_STATUSES = {"pending", "won", "lost"}
@@ -434,6 +460,10 @@ def register_bets_routes(app, db):
                     USERS.update_one(selector, {"$inc": {"balance": stake_dec128}})
                     raise insert_err
 
+                invalidate_pattern("bets:list:*")
+                invalidate_pattern(f"bets_by_email:{user_email}:*")
+                invalidate("bets_summary")
+
                 new_bet = BETS.find_one({"_id": res.inserted_id})
                 return jsonify({"message": "Bet added successfully.", "bet": ser(new_bet)}), 201
 
@@ -452,12 +482,20 @@ def register_bets_routes(app, db):
         res = BETS.delete_one({"_id": oid})
         if not res.deleted_count:
             return jsonify({"error": "Not found"}), 404
+
+        invalidate_pattern("bets:list:*")
+        invalidate("bets_summary")
+
         return jsonify({"deleted": True, "_id": id})
 
     # ---------- SUMMARY ----------
     @app.get("/bets/summary")
     def bet_summary():
         try:
+            cache_key = "bets_summary"
+            cached = cache_get_json(cache_key)
+            if cached:
+                return jsonify(cached), 200
             pipeline = [
                 {"$match": {"status": {"$in": ["won", "lost"]}}},
 
@@ -572,7 +610,10 @@ def register_bets_routes(app, db):
                     }
                 }}
             ]
-            return jsonify(list(BETS.aggregate(pipeline))), 200
+            result = list(BETS.aggregate(pipeline))
+
+            cache_set_json(cache_key, result, ttl=45)
+            return jsonify(result), 200
 
         except Exception as e:
             return jsonify({"error": "Failed to generate summary", "details": str(e)}), 500
