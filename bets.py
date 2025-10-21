@@ -479,11 +479,19 @@ def register_bets_routes(app, db):
         oid = to_oid(id)
         if not oid:
             return jsonify({"error": "Invalid id"}), 400
+
+        bet_doc = BETS.find_one({"_id": oid})
+        if not bet_doc:
+            return jsonify({"error": "Not found"}), 404
+
+        user_email = bet_doc.get("userEmail")
+
         res = BETS.delete_one({"_id": oid})
         if not res.deleted_count:
             return jsonify({"error": "Not found"}), 404
 
         invalidate_pattern("bets:list:*")
+        invalidate_pattern(f"bets_by_email:{user_email}:*")
         invalidate("bets_summary")
 
         return jsonify({"deleted": True, "_id": id})
@@ -626,12 +634,24 @@ def register_bets_routes(app, db):
         status = data.get("status")
         if not bet_id or not status:
             return jsonify({"error": "Missing betId or status"}), 400
+
         oid = to_oid(bet_id)
         if not oid:
             return jsonify({"error": "Invalid betId"}), 400
+
+        bet_doc = BETS.find_one({"_id": oid})
+        if not bet_doc:
+            return jsonify({"error": "Bet not found"}), 404
+        user_email = bet_doc.get("userEmail")
+
         res = BETS.update_one({"_id": oid}, {"$set": {"status": status}})
         if res.modified_count == 0:
             return jsonify({"error": "No bet updated"}), 404
+
+        invalidate_pattern("bets:list:*")
+        invalidate_pattern(f"bets_by_email:{user_email}:*")
+        invalidate("bets_summary")
+
         return jsonify({"message": "Bet status updated", "betId": bet_id, "status": status})
 
     r = redis.Redis(host='localhost', port=6379, db=0)

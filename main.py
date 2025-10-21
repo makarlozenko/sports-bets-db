@@ -26,4 +26,4 @@ register_users_routes(app, db)
 
 if __name__ == "__main__":
     # paleidimas lokaliai
-    app.run(debug=True, threaded=True, host="127.0.0.1", port=5050)
+    app.run(debug=True, threaded=True, host="127.0.0.1", port=5000)

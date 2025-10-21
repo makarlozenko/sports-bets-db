@@ -3,6 +3,8 @@ from bson import ObjectId
 from bson.decimal128 import Decimal128
 from datetime import datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+
+from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
 def register_users_routes(app, db):
     USERS = db.User
 
@@ -47,6 +49,11 @@ def register_users_routes(app, db):
         sort_by = request.args.get("sort_by")
         ascending = request.args.get("ascending", "true").lower() == "true"
 
+        cache_key = f"users:list:{first_name}:{last_name}:{min_balance}:{max_balance}:{sort_by}:{ascending}"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
+
         query = {}
         if first_name:
             query["firstName"] = {"$regex": first_name, "$options": "i"}
@@ -71,7 +78,9 @@ def register_users_routes(app, db):
         total = USERS.count_documents(query)  # ← total skaičiuoja Mongo
         cur = (USERS.find(query).sort(sort_field, order))
         items = [ser(x) for x in cur]
-        return jsonify({"items": items, "total": total})
+        result = {"items": items, "total": total}
+        cache_set_json(cache_key, result, ttl=45)
+        return jsonify(result)
 
     @app.get("/users/<id>")
     def get_user(id):
@@ -171,6 +180,8 @@ def register_users_routes(app, db):
             res = USERS.insert_one(data)
             new_user = USERS.find_one({"_id": res.inserted_id})
 
+            invalidate_pattern("users:list:*")
+
             return jsonify({
                 "message": "User added successfully",
                 "user": ser(new_user)
@@ -225,6 +236,8 @@ def register_users_routes(app, db):
         if res.matched_count == 0:
             return jsonify({"error": "User not found"}), 404
 
+        invalidate_pattern("users:list:*")
+
         user = USERS.find_one({"_id": oid})
         return jsonify({"message": "User updated", "user": ser(user)}), 200
 
@@ -249,6 +262,8 @@ def register_users_routes(app, db):
         if res.matched_count == 0:
             return jsonify({"error": "User not found"}), 404
 
+        invalidate_pattern("users:list:*")
+
         return jsonify({"message": "User balance updated", "userId": user_id, "balance": str(dec)}), 200
 
     @app.get("/users/by_email/<email>")
@@ -266,4 +281,7 @@ def register_users_routes(app, db):
         res = USERS.delete_one({"_id": oid})
         if not res.deleted_count:
             return jsonify({"error": "User not found"}), 404
+
+        invalidate_pattern("users:list:*")
+
         return jsonify({"deleted": True, "_id": id})
