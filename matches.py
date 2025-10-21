@@ -4,6 +4,9 @@ from datetime import datetime
 from dateutil import parser
 from bson.decimal128 import Decimal128
 from decimal import Decimal, ROUND_HALF_UP
+
+from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
+
 def register_matches_routes(app, db):
     MATCHES = db.Matches   # collection
     TEAMS = db.Teams
@@ -62,6 +65,11 @@ def register_matches_routes(app, db):
             ascending = request.args.get("ascending", "false").lower() == "true"
             order = 1 if ascending else -1
 
+            cache_key = f"matches:list:{sport or 'all'}:{date_from}:{date_to}:{sort_by}:{ascending}"
+            cached = cache_get_json(cache_key)
+            if cached:
+                return jsonify(cached), 200
+
             query = {}
             if sport:
                 query["sport"] = sport
@@ -77,7 +85,9 @@ def register_matches_routes(app, db):
             # NAUJA: rekursyviai serializuojame kiekvieną dokumentą
             items = [ser_mongo(doc) for doc in cur]
 
-            return jsonify({"items": items, "total": total}), 200
+            result = {"items": items, "total": total}
+            cache_set_json(cache_key, result, ttl=45)
+            return jsonify(result), 200
         except Exception as e:
             return jsonify({"message": "Failed to list matches.", "error": str(e)}), 400
 
@@ -99,8 +109,8 @@ def register_matches_routes(app, db):
     LOGISTIC_SCALE = 400.0
     FORM_WEIGHT = 0.6  # kiek svarbi forma prieš rating
     MARGIN = Decimal("1.06")
-    ODDS_MIN = Decimal("0.50")  # prašei: ne mažiau kaip 0.50
-    ODDS_MAX = Decimal("10.00")  # ir ne daugiau kaip 10.00
+    ODDS_MIN = Decimal("0.50")  #ne mažiau kaip 0.50
+    ODDS_MAX = Decimal("10.00")  #ir ne daugiau kaip 10.00
 
     def _q2(x) -> Decimal:
         return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -215,6 +225,9 @@ def register_matches_routes(app, db):
             # --- įrašymas ---
             res = MATCHES.insert_one(data)
             new_doc = MATCHES.find_one({"_id": res.inserted_id})
+
+            invalidate_pattern("matches:list:*")
+
             return jsonify({"message": "Match added", "match": ser_mongo(new_doc)}), 201
 
         except Exception as e:
@@ -231,6 +244,9 @@ def register_matches_routes(app, db):
         upd = MATCHES.update_one({"_id": oid}, {"$set": data})
         if not upd.matched_count:
             return jsonify({"error": "Not found"}), 404
+
+        invalidate_pattern("matches:list:*")
+
         return jsonify(ser(MATCHES.find_one({"_id": oid})))
 
     @app.delete("/matches/<id>")
@@ -242,6 +258,9 @@ def register_matches_routes(app, db):
         res = MATCHES.delete_one({"_id": oid})
         if not res.deleted_count:
             return jsonify({"error": "Not found"}), 404
+
+        invalidate_pattern("matches:list:*")
+
         return jsonify({"deleted": True, "_id": id})
 
     # ---------------------- FILTER ----------------------
@@ -256,6 +275,11 @@ def register_matches_routes(app, db):
         team = request.args.get("team")
         date_from = request.args.get("from")
         date_to = request.args.get("to")
+
+        cache_key = f"matches_filter:{sport}:{team}:{date_from}:{date_to}"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
 
         query = {}
         if sport:
@@ -275,7 +299,10 @@ def register_matches_routes(app, db):
 
         cur = MATCHES.find(query)
         items = [ser(x) for x in cur]
-        return jsonify({"items": items, "total": len(items)})
+        result = {"items": items, "total": len(items)}
+
+        cache_set_json(cache_key, result, ttl=45)
+        return jsonify(result)
 
     # ---------------------- REORDER ----------------------
     @app.get("/matches/reorder")
@@ -286,8 +313,17 @@ def register_matches_routes(app, db):
         """
         sort_by = request.args.get("sort_by", "date")
         ascending = request.args.get("ascending", "true").lower() == "true"
+
+        cache_key = f"matches_reorder:{sort_by}:{ascending}"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
+
         order = 1 if ascending else -1
 
         cur = MATCHES.find({}).sort(sort_by, order)
         items = [ser(x) for x in cur]
-        return jsonify(items)
+        result = items
+
+        cache_set_json(cache_key, result, ttl=45)
+        return jsonify(result)
