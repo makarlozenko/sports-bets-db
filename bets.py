@@ -438,7 +438,7 @@ def register_bets_routes(app, db):
                 return jsonify({"message": "Bet added successfully.", "bet": ser(new_bet)}), 201
 
             finally:
-                # Всегда освобождаем лок
+
                 release_lock(lock_name)
         except Exception as e:
             return jsonify({"message": "Failed to add bet.", "error": str(e)}), 400
@@ -596,7 +596,6 @@ def register_bets_routes(app, db):
     r = redis.Redis(host='localhost', port=6379, db=0)
 
     def acquire_lock(lock_name, timeout=5000):
-        """Пытаемся получить лок. Возвращает True/False."""
         key = f"lock:{lock_name}"
         end = time.time() + timeout / 1000
         while time.time() < end:
@@ -606,5 +605,4 @@ def register_bets_routes(app, db):
         return False
 
     def release_lock(lock_name):
-        """Снимаем лок."""
         r.delete(f"lock:{lock_name}")
