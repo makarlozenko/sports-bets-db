@@ -7,6 +7,8 @@ from collections import OrderedDict
 import json
 from flask import Response
 
+from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
+
 def register_teams_routes(app, db):
     TEAMS = db.Team             # Collection
 
@@ -30,10 +32,18 @@ def register_teams_routes(app, db):
     # LIST
     @app.get("/teams")
     def list_teams():
+        cache_key = "teams:list"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
+
         cur = TEAMS.find({})
         items = [ser(x) for x in cur]
         total = TEAMS.count_documents({})
-        return jsonify({"items": items, "total": total})
+        result = {"items": items, "total": total}
+
+        cache_set_json(cache_key, result, ttl=45)
+        return jsonify(result)
 
     # CREATE
     @app.post("/teams")
@@ -67,6 +77,10 @@ def register_teams_routes(app, db):
             # --- Insert new team if unique ----
             res = TEAMS.insert_one(data)
             new_team = TEAMS.find_one({"_id": res.inserted_id})
+
+            invalidate_pattern("teams:list:*")
+            invalidate_pattern("teams:aggregations:*")
+
             return jsonify({
                 "message": "Team added successfully",
                 "team": ser(new_team)
@@ -100,7 +114,11 @@ def register_teams_routes(app, db):
         upd = TEAMS.update_one({"_id": oid}, {"$set": data})
         if not upd.matched_count:
             return jsonify({"error": "Not found"}), 404
-        return jsonify(ser(TEAMS.find_one({"_id": oid})))
+
+        invalidate_pattern("teams:list:*")
+        invalidate_pattern("teams:aggregations:*")
+
+        return jsonify(ser(TEAMS.find_one({"_id": oid}))), 200
 
     # DELETE
     @app.delete("/teams/<id>")
@@ -111,7 +129,11 @@ def register_teams_routes(app, db):
         res = TEAMS.delete_one({"_id": oid})
         if not res.deleted_count:
             return jsonify({"error": "Not found"}), 404
-        return jsonify({"deleted": True, "_id": id})
+
+        invalidate_pattern("teams:list:*")
+        invalidate_pattern("teams:aggregations:*")
+
+        return jsonify({"deleted": True, "_id": id}), 200
 
 
     # FILTER
@@ -121,6 +143,11 @@ def register_teams_routes(app, db):
         name = request.args.get("name")
         min_rating = request.args.get("min_rating", type=int)
         max_rating = request.args.get("max_rating", type=int)
+
+        cache_key = f"teams:filter:{sport}:{name}:{min_rating}:{max_rating}"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached)
 
         query = {}
         if sport:
@@ -135,7 +162,10 @@ def register_teams_routes(app, db):
 
         total = TEAMS.count_documents(query)
         items = [ser(x) for x in TEAMS.find(query)]
-        return jsonify({"items": items, "total": total})
+        data = {"items": items, "total": total}
+
+        cache_set_json(cache_key, data, ttl=45)
+        return jsonify(data)
 
     # REORDER
     @app.get("/teams/reorder")
@@ -144,8 +174,18 @@ def register_teams_routes(app, db):
         sort_by = request.args.get("sort_by", "rating")
         ascending = request.args.get("ascending", "true").lower() == "true"
         order = 1 if ascending else -1
+
+        cache_key = f"teams:reorder:{sort_by}:{ascending}"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
+
         cur = TEAMS.find({}).sort(sort_by, order)
-        return jsonify([ser(x) for x in cur])
+        items = [ser(x) for x in cur]
+        data = {"items": items, "sort_by": sort_by, "ascending": ascending}
+
+        cache_set_json(cache_key, data, ttl=45)
+        return jsonify(data), 200
 
 #--------------- AGREGATIONS ---------------------------------
     @app.get("/teams/aggregations/football_stats")
@@ -154,6 +194,11 @@ def register_teams_routes(app, db):
         Aggregation: total goals scored/conceded, yellow/red cards for football teams.
         Works with fields: $team1.name / $team2.name / result.*
         """
+        cache_key = "teams:aggregations:football_stats"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
+
         pipeline = [
             {"$match": {"sport": "football"}},                  #paimamos tik komandos su sporto šaka 'football'
 
@@ -230,8 +275,9 @@ def register_teams_routes(app, db):
             }}
         ]
 
-        result = list(db.Team.aggregate(pipeline))              # Paleidžiame agregaciją 'Team' kolekcijoje ir paverčiame į sąrašą.
-        return jsonify(result)                                  # Grąžiname JSON atsakymą.
+        result = list(db.Team.aggregate(pipeline))
+        cache_set_json(cache_key, result, ttl=45)
+        return jsonify(result), 200
 
 
     @app.get("/teams/aggregations/basketball_stats")
@@ -240,6 +286,11 @@ def register_teams_routes(app, db):
         Aggregation: average fouls per match, total scored/conceded points, and score difference.
         Works with basketball matches (sport='basketball').
         """
+        cache_key = "teams:aggregations:basketball_stats"
+        cached = cache_get_json(cache_key)
+        if cached:
+            return jsonify(cached), 200
+
         pipeline = [
             {"$match": {"sport": "basketball"}},
 
@@ -331,7 +382,8 @@ def register_teams_routes(app, db):
         ]
 
         result = list(db.Team.aggregate(pipeline))
-        return jsonify(result)
+        cache_set_json(cache_key, result, ttl=45)
+        return jsonify(result), 200
 
 
 
