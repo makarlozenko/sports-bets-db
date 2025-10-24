@@ -3,24 +3,26 @@ import requests
 import time
 import uuid
 
-BASE_URL = "http://127.0.0.1:5050"
+BASE_URL = "http://127.0.0.1:5000"
 
 payload = {
-    "userId": "d1449f76f78f46d2ac09d832",
-    "userEmail": "aurimas.mikalauskas13@gmail.com",
-    "event": {
-        "team_1": "Vilnius FC",
-        "team_2": "Kaunas United",
-        "type": "league",
-        "date": "2025-10-08"
-    },
-    "bet": {
-        "choice": "winner",
-        "team": "Vilnius FC",
-        "odds": 2.5,
-        "stake": 10.0
-    },
-    "requestId": str(uuid.uuid4())
+  "userId": "68f27893e6f79eef77a5c165",
+  "userEmail": "arina.ti@outlook.com",
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Kaunas Green",
+    "type": "league",
+    "date": "2025-09-01"
+
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Vilnius Wolves",
+    "stake": 20.00,
+    "createdAt": "2025-07-01"
+
+  },
+  "requestId": str(uuid.uuid4())
 }
 
 def send_bet(thread_name):
@@ -39,3 +41,9 @@ t2.start()
 
 t1.join()
 t2.join()
+
+print("=== Testing idempotency ===")
+resp1 = requests.post(f"{BASE_URL}/bets", json=payload)
+resp2 = requests.post(f"{BASE_URL}/bets", json=payload)
+print("First:", resp1.status_code, resp1.text)
+print("Second:", resp2.status_code, resp2.text)
