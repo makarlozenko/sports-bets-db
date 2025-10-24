@@ -22,23 +22,32 @@ def register_users_routes(app, db):
         return val
 
     def ser(doc):
-        if not doc:
+        if doc is None:
             return None
-        d = dict(doc)
-        for k, v in d.items():
-            if isinstance(v, ObjectId):
-                d[k] = str(v)
-            elif isinstance(v, dict):
-                d[k] = ser(v)
-            elif isinstance(v, list):
-                d[k] = [ser(x) if isinstance(x, dict) else x for x in v]
-            elif isinstance(v, Decimal128):
-                d[k] = float(v.to_decimal())
-        if "balance" in d:
-            d["balance"] = to_float(d["balance"])
-        if "birthDate" in d and isinstance(d["birthDate"], dict) and "$date" in d["birthDate"]:
-            d["birthDate"] = d["birthDate"]["$date"]
-        return d
+
+        # jei tai dict – eik per raktus
+        if isinstance(doc, dict):
+            out = {}
+            for k, v in doc.items():
+                out[k] = ser(v)
+            # specifiniai pataisymai:
+            if "balance" in out:
+                out["balance"] = to_float(out["balance"])
+            if isinstance(out.get("birthDate"), dict) and "$date" in out["birthDate"]:
+                out["birthDate"] = out["birthDate"]["$date"]
+            return out
+
+        if isinstance(doc, list):
+            return [ser(x) for x in doc]
+
+        if isinstance(doc, ObjectId):
+            return str(doc)
+        if isinstance(doc, Decimal128) or isinstance(doc, Decimal):
+            return to_float(doc)
+        if isinstance(doc, datetime):
+            return doc.isoformat()
+
+        return doc
 
     @app.get("/users")
     def list_users():

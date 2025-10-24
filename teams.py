@@ -206,63 +206,64 @@ def register_teams_routes(app, db):
             return jsonify(cached), 200
 
         pipeline = [
-            {"$match": {"sport": "football"}},                  #paimamos tik komandos su sporto šaka 'football'
+            # 1) Imame visas "football" komandas (case-insensitive tikslus atitikmuo)
+            {"$match": {"sport": {"$regex": "^football$", "$options": "i"}}},
 
-            {"$lookup": {                                       # Prijungiame iš 'Matches' kolekcijos rungtynes pagal komandos pavadinimą
-                "from": "Matches",                              # Iš kokios kolekcijos traukti duomenis – 'Matches'
-                "let": {"team_name": "$teamName"},              # 'let' apibrėžia vietinį kintamąjį su šios komandos pavadinimu
+            # 2) Surišame jų rungtynes
+            {"$lookup": {
+                "from": "Matches",
+                "let": {"team_name": "$teamName"},
                 "pipeline": [
                     {"$match": {
-                        "$expr": {                              # $expr, kad galėtume lyginti laukus ir kintamuosius.
-                            "$and": [                           # Imame tik tas rungtynes, kurios taip pat 'football'.
+                        "$expr": {
+                            "$and": [
                                 {"$eq": ["$sport", "football"]},
                                 {"$or": [
-                                    {"$regexMatch": {"input": "$team1.name", "regex": "$$team_name", "options": "i"}},
-                                    {"$regexMatch": {"input": "$team2.name", "regex": "$$team_name", "options": "i"}}
+                                    # tiksli, bet case-insensitive lygybė (be regex spąstų)
+                                    {"$eq": [{"$toLower": "$team1.name"}, {"$toLower": "$$team_name"}]},
+                                    {"$eq": [{"$toLower": "$team2.name"}, {"$toLower": "$$team_name"}]}
                                 ]}
                             ]
                         }
                     }}
                 ],
-                "as": "matches"                                 # Suderinamos rungtynės atsiduria masyve 'matches'.
+                "as": "matches"
             }},
 
-            {"$unwind": {"path": "$matches", "preserveNullAndEmptyArrays": False}},
+            # 3) Neišmetam komandų be rungtynių
+            {"$unwind": {"path": "$matches", "preserveNullAndEmptyArrays": True}},
 
-            {"$project": {
-                "teamName": 1,
-                "sport": 1,
-                "scored": {                                     #   komandos įvarčiai rungtynėse
-                    "$cond": [                                  #    Jei ši komanda buvo '$team1', imame '$team1.result.goalsFor' kitaip 2 komandai
-                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.$team1.result.goalsFor",
-                        "$matches.team2.result.goalsFor"
-                    ]
-                },
-                "conceded": {                                    #    Praleisti įvarčiai analogiškai (goalsAgainst):
+            # 4) Išsitraukiam saugius laukus su $ifNull
+            {"$set": {
+                "t1_goals_for": {"$ifNull": ["$matches.team1.result.goalsFor", 0]},
+                "t1_goals_against": {"$ifNull": ["$matches.team1.result.goalsAgainst", 0]},
+                "t2_goals_for": {"$ifNull": ["$matches.team2.result.goalsFor", 0]},
+                "t2_goals_against": {"$ifNull": ["$matches.team2.result.goalsAgainst", 0]},
+                "t1_y": {"$ifNull": ["$matches.team1.result.cards.yellow", 0]},
+                "t1_r": {"$ifNull": ["$matches.team1.result.cards.red", 0]},
+                "t2_y": {"$ifNull": ["$matches.team2.result.cards.yellow", 0]},
+                "t2_r": {"$ifNull": ["$matches.team2.result.cards.red", 0]},
+
+                "is_t1": {
                     "$cond": [
-                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.$team1.result.goalsAgainst",
-                        "$matches.team2.result.goalsAgainst"
-                    ]
-                },
-                "yellow": {
-                    "$cond": [
-                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.$team1.result.cards.yellow",
-                        "$matches.team2.result.cards.yellow"
-                    ]
-                },
-                "red": {
-                    "$cond": [
-                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.$team1.result.cards.red",
-                        "$matches.team2.result.cards.red"
+                        {"$gt": [{"$type": "$matches"}, "missing"]},  # jei matches neegzistuoja -> false
+                        {"$eq": [{"$toLower": "$matches.team1.name"}, {"$toLower": "$teamName"}]},
+                        False
                     ]
                 }
             }},
 
-            {"$group": {                                        # sugrupuojame pagal komandos pavadinimą
+            # 5) Paverčiam į vienos rungtynės indėlį, 0 jei rungtynių nėra
+            {"$project": {
+                "teamName": 1,
+                "scored": {"$cond": ["$is_t1", "$t1_goals_for", "$t2_goals_for"]},
+                "conceded": {"$cond": ["$is_t1", "$t1_goals_against", "$t2_goals_against"]},
+                "yellow": {"$cond": ["$is_t1", "$t1_y", "$t2_y"]},
+                "red": {"$cond": ["$is_t1", "$t1_r", "$t2_r"]}
+            }},
+
+            # 6) Sumos per komandą (komandos be rungtynių turės 0 sumas)
+            {"$group": {
                 "_id": "$teamName",
                 "total_scored": {"$sum": "$scored"},
                 "total_conceded": {"$sum": "$conceded"},
@@ -270,12 +271,12 @@ def register_teams_routes(app, db):
                 "red_cards": {"$sum": "$red"}
             }},
 
-            {"$project": {                                      # Galutinis formavimas:
+            {"$project": {
                 "_id": 0,
                 "teamName": "$_id",
                 "total_scored": 1,
                 "total_conceded": 1,
-                "goal_diff": {"$subtract": ["$total_scored", "$total_conceded"]}, # Įvarčių skirtumas = įmušti - praleisti.
+                "goal_diff": {"$subtract": ["$total_scored", "$total_conceded"]},
                 "yellow_cards": 1,
                 "red_cards": 1
             }}
@@ -298,8 +299,10 @@ def register_teams_routes(app, db):
             return jsonify(cached), 200
 
         pipeline = [
-            {"$match": {"sport": "basketball"}},
+            # 1) visos krepšinio komandos (case-insensitive tikslus atitikmuo)
+            {"$match": {"sport": {"$regex": "^basketball$", "$options": "i"}}},
 
+            # 2) prisijungiame atitinkamas rungtynes
             {"$lookup": {
                 "from": "Matches",
                 "let": {"team_name": "$teamName"},
@@ -309,8 +312,8 @@ def register_teams_routes(app, db):
                             "$and": [
                                 {"$eq": ["$sport", "basketball"]},
                                 {"$or": [
-                                    {"$regexMatch": {"input": "$team1.name", "regex": "$$team_name", "options": "i"}},
-                                    {"$regexMatch": {"input": "$team2.name", "regex": "$$team_name", "options": "i"}}
+                                    {"$eq": [{"$toLower": "$team1.name"}, {"$toLower": "$$team_name"}]},
+                                    {"$eq": [{"$toLower": "$team2.name"}, {"$toLower": "$$team_name"}]}
                                 ]}
                             ]
                         }
@@ -319,72 +322,80 @@ def register_teams_routes(app, db):
                 "as": "matches"
             }},
 
-            {"$unwind": {"path": "$matches", "preserveNullAndEmptyArrays": False}},
+            # 3) neišmetam komandų be rungtynių
+            {"$unwind": {"path": "$matches", "preserveNullAndEmptyArrays": True}},
 
-            {"$project": {
-                "teamName": 1,
-                "scored_points": {
+            # 4) saugūs laukai + indikatorius ar ši komanda buvo team1
+            {"$set": {
+                "t1_one": {"$ifNull": ["$matches.team1.result.pointsBreakdown.one", 0]},
+                "t1_two": {"$ifNull": ["$matches.team1.result.pointsBreakdown.two", 0]},
+                "t1_three": {"$ifNull": ["$matches.team1.result.pointsBreakdown.three", 0]},
+                "t2_one": {"$ifNull": ["$matches.team2.result.pointsBreakdown.one", 0]},
+                "t2_two": {"$ifNull": ["$matches.team2.result.pointsBreakdown.two", 0]},
+                "t2_three": {"$ifNull": ["$matches.team2.result.pointsBreakdown.three", 0]},
+                "t1_fouls": {"$ifNull": ["$matches.team1.result.fouls", 0]},
+                "t2_fouls": {"$ifNull": ["$matches.team2.result.fouls", 0]},
+                "t1name": {"$ifNull": ["$matches.team1.name", ""]},
+                "t2name": {"$ifNull": ["$matches.team2.name", ""]},
+                "is_t1": {
                     "$cond": [
-                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
-                        {"$add": [
-                            "$matches.$team1.result.pointsBreakdown.one",
-                            {"$multiply": [2, "$matches.$team1.result.pointsBreakdown.two"]},
-                            {"$multiply": [3, "$matches.$team1.result.pointsBreakdown.three"]}
-                        ]},
-                        {"$add": [
-                            "$matches.team2.result.pointsBreakdown.one",
-                            {"$multiply": [2, "$matches.team2.result.pointsBreakdown.two"]},
-                            {"$multiply": [3, "$matches.team2.result.pointsBreakdown.three"]}
-                        ]}
-                    ]
-                },
-                "conceded_points": {
-                    "$cond": [
-                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
-                        {"$add": [
-                            "$matches.team2.result.pointsBreakdown.one",
-                            {"$multiply": [2, "$matches.team2.result.pointsBreakdown.two"]},
-                            {"$multiply": [3, "$matches.team2.result.pointsBreakdown.three"]}
-                        ]},
-                        {"$add": [
-                            "$matches.$team1.result.pointsBreakdown.one",
-                            {"$multiply": [2, "$matches.$team1.result.pointsBreakdown.two"]},
-                            {"$multiply": [3, "$matches.$team1.result.pointsBreakdown.three"]}
-                        ]}
-                    ]
-                },
-                "fouls": {
-                    "$cond": [
-                        {"$regexMatch": {"input": "$matches.$team1.name", "regex": "$teamName", "options": "i"}},
-                        "$matches.$team1.result.fouls",
-                        "$matches.team2.result.fouls"
+                        {"$gt": [{"$type": "$matches"}, "missing"]},
+                        {"$eq": [{"$toLower": "$matches.team1.name"}, {"$toLower": "$teamName"}]},
+                        False
                     ]
                 }
             }},
 
+            # 5) vienų rungtynių indėlis (0 jei rungtynių nėra)
+            {"$set": {
+                "scored_points": {
+                    "$cond": [
+                        "$is_t1",
+                        {"$add": ["$t1_one", {"$multiply": [2, "$t1_two"]}, {"$multiply": [3, "$t1_three"]}]},
+                        {"$add": ["$t2_one", {"$multiply": [2, "$t2_two"]}, {"$multiply": [3, "$t2_three"]}]}
+                    ]
+                },
+                "conceded_points": {
+                    "$cond": [
+                        "$is_t1",
+                        {"$add": ["$t2_one", {"$multiply": [2, "$t2_two"]}, {"$multiply": [3, "$t2_three"]}]},
+                        {"$add": ["$t1_one", {"$multiply": [2, "$t1_two"]}, {"$multiply": [3, "$t1_three"]}]}
+                    ]
+                },
+                "fouls": {"$cond": ["$is_t1", "$t1_fouls", "$t2_fouls"]},
+
+                # skaičiuosim match_count tik kai yra bent vienas pavadinimas (t. y. tikros rungtynės)
+                "has_match": {"$or": [{"$ne": ["$t1name", ""]}, {"$ne": ["$t2name", ""]}]}
+            }},
+
+            # 6) sumos per komandą
             {"$group": {
                 "_id": "$teamName",
                 "total_scored": {"$sum": "$scored_points"},
                 "total_conceded": {"$sum": "$conceded_points"},
                 "total_fouls": {"$sum": "$fouls"},
-                "match_count": {"$sum": 1}
+                "match_count": {"$sum": {"$cond": ["$has_match", 1, 0]}}
             }},
 
-            {"$project": {
-                "_id": 0,
-                "teamName": "$_id",
-                "total_scored": 1,
-                "total_conceded": 1,
-                "goal_diff": {"$subtract": ["$total_scored", "$total_conceded"]},
-                "avg_fouls": {
-                    "$cond": [
-                        {"$gt": ["$match_count", 0]},
-                        {"$divide": ["$total_fouls", "$match_count"]},
-                        0
-                    ]
-                },
-                "match_count": 1
-            }}
+            # 7) galutinis vaizdas + vidurkis
+            {
+                "$project": {
+                    "_id": 0,
+                    "teamName": "$_id",
+                    "total_scored": 1,
+                    "total_conceded": 1,
+                    "goal_diff": {"$subtract": ["$total_scored", "$total_conceded"]},
+                    "avg_fouls": {
+                        "$cond": [
+                            {"$gt": ["$match_count", 0]},
+                            {"$round": [{"$divide": ["$total_fouls", "$match_count"]}, 2]},
+                            0
+                        ]
+                    },
+                    "match_count": 1
+                }
+            }
+
         ]
 
         result = list(db.Team.aggregate(pipeline))
