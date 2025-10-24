@@ -6,3 +6,4 @@ The main benefits of this implementation are speed, reliability, and data integr
 
 The test_cart_flow.py script demonstrates the entire workflow in action. It adds two bets to a user’s cart, checks Redis to confirm that the items were saved, verifies that MongoDB is still empty before checkout, performs the checkout operation, and finally confirms that the cart has been cleared and the bets have appeared in MongoDB. This end-to-end test confirms that the cart logic, balance validation, and data synchronization between Redis and MongoDB are all functioning correctly.
 
+ 

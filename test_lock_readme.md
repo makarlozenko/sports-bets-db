@@ -23,7 +23,7 @@ It prevents duplicate bets, protects user balance operations, and uses **Redis l
    - acquires a **Redis lock** to ensure no other request is modifying that user’s bets simultaneously.
 2. If everything is valid, the bet is saved in the database.
 3. If a duplicate or race condition occurs, the system safely rejects the second request.
-
+ 
 Example lock key:
 ```python
 lock_key = f"bet:{userId}:{event['team_1']}:{event['team_2']}:{event['date']}"
