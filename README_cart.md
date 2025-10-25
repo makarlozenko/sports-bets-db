@@ -213,19 +213,4 @@ Checkout: 201
 ├── bets_routes.py          # Regular bets endpoints
 ├── test_cart_flow.py       # End-to-end flow test
 └── README.md
-```
 
----
-
-## 🧩 Summary
-
-✅ **Redis** — fast temporary cart storage with TTL  
-✅ **MongoDB** — permanent bets after checkout  
-✅ **Duplicate-safe** checkout logic  
-✅ **User-isolated** carts  
-✅ **Full automation** test script  
-
----
-
-**Author:** Dovydas Sakalauskas  
-Part of the *SportBet* system — Betting Cart & Checkout Module 🏅
