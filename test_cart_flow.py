@@ -6,7 +6,6 @@ import redis
 from pymongo import MongoClient
 import certifi
 
-
 # ---------- Configuration ----------
 BASE_URL = "http://127.0.0.1:5000"
 USER_EMAIL = "dovydas.sakalauskas5@gmail.com"
@@ -16,8 +15,10 @@ USER_ID = "ee576a2c1f82513b2d4b8047"
 r = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 # Mongo connection
-client = MongoClient('mongodb+srv://arinatichonovskaja_db_user:Komanda@sportbet.wafmb2f.mongodb.net/?retryWrites=true&w=majority&appName=SportBet',
-                     tlsCAFile=certifi.where())
+client = MongoClient(
+    'mongodb+srv://arinatichonovskaja_db_user:Komanda@sportbet.wafmb2f.mongodb.net/?retryWrites=true&w=majority&appName=SportBet',
+    tlsCAFile=certifi.where()
+)
 db = client.SportBET
 bets_collection = db.Bets
 
@@ -74,7 +75,41 @@ def show_mongo_state():
         pprint(b)
 
 
+def clear_user_bets():
+    """Remove only duplicate test bets for this user (matching same teams/date)"""
+    print_line("CLEANUP — remove only test duplicate bets")
+
+    test_bets = [
+        {"event.team_1": "Vilnius FC", "event.team_2": "Panevezys Town", "event.date": "2025-08-29"},
+        {"event.team_1": "Kaunas United", "event.team_2": "Riga City", "event.date": "2025-08-29"}
+    ]
+
+    total_deleted = 0
+    for q in test_bets:
+        result = bets_collection.delete_many({
+            "userEmail": USER_EMAIL,
+            "event.team_1": q["event.team_1"],
+            "event.team_2": q["event.team_2"],
+            "event.date": q["event.date"]
+        })
+        total_deleted += result.deleted_count
+
+    print(f"Removed {total_deleted} matching test bets from MongoDB.")
+
+
+def perform_checkout():
+    """Run checkout for the test user"""
+    payload = {"userEmail": USER_EMAIL}
+    resp = requests.post(f"{BASE_URL}/cart/checkout", json=payload)
+    print(f"Checkout: {resp.status_code}")
+    pprint(resp.json())
+
+
 def main():
+    # Step 0 — cleanup
+    clear_user_bets()
+
+    # Step 1 — add two bets into the cart
     print_line("STEP 1 — add two bets into the cart")
     add_to_cart("Vilnius FC", "Panevezys Town", 25)
     add_to_cart("Kaunas United", "Riga City", 40)
@@ -82,20 +117,33 @@ def main():
     time.sleep(1)
     show_redis_state()
 
+    # Step 2 — confirm MongoDB is still empty
     print_line("STEP 2 — confirm MongoDB is still empty")
     show_mongo_state()
 
+    # Step 3 — perform checkout (move from Redis → Mongo)
     print_line("STEP 3 — perform checkout (move from Redis → Mongo)")
-    payload = {"userEmail": USER_EMAIL}
-    resp = requests.post(f"{BASE_URL}/cart/checkout", json=payload)
-    print(f"Checkout: {resp.status_code}")
-    pprint(resp.json())
+    perform_checkout()
 
     time.sleep(1)
     print_line("STEP 4 — verify Redis is now empty")
     show_redis_state()
 
     print_line("STEP 5 — verify bets are now in MongoDB")
+    show_mongo_state()
+
+    # Step 6 — add same bets again and checkout again (expect skip)
+    print_line("STEP 6 — add same bets again (duplicates expected)")
+    add_to_cart("Vilnius FC", "Panevezys Town", 25)
+    add_to_cart("Kaunas United", "Riga City", 40)
+
+    time.sleep(1)
+    show_redis_state()
+
+    print_line("STEP 7 — perform checkout again (should skip duplicates)")
+    perform_checkout()
+
+    print_line("STEP 8 — final Mongo state (should be unchanged)")
     show_mongo_state()
 
 

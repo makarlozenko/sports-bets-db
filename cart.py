@@ -163,8 +163,10 @@ def register_cart_routes(app, db):
         user_id = payload.get("userId")
         user_email = (payload.get("userEmail") or "").strip().lower()
         user_key = _ensure_user_key(payload)
-        if not user_key:
-            return jsonify({"error": "Provide userId or userEmail"}), 400
+
+        if not user_id and not user_email:
+            return jsonify({"error": "Specify userId or userEmail for checkout"}), 400
+
         key = _cart_key(user_key)
         data = r.hgetall(key)
         if not data:
@@ -193,10 +195,10 @@ def register_cart_routes(app, db):
             return jsonify({"error": "Insufficient balance or user not found."}), 400
 
         inserted_ids = []
+        skipped_duplicates = 0
         try:
             now = datetime.utcnow()
             for it in items:
-                # Normalize payload to bets schema (minimal)
                 doc = {
                     "userEmail": user_email or user_after.get("email"),
                     "userId": user_after.get("_id"),
@@ -212,25 +214,48 @@ def register_cart_routes(app, db):
                     "status": "pending",
                     "createdAt": now
                 }
+
                 # ensure Decimal128 for stake
                 if "stake" in doc["bet"]:
-                    doc["bet"]["stake"] = Decimal128(str(Decimal(str(doc["bet"]["stake"])).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)))
+                    doc["bet"]["stake"] = Decimal128(
+                        str(Decimal(str(doc["bet"]["stake"])).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+                    )
+
+                # --- duplicate check before inserting ---
+                duplicate = BETS.find_one({
+                    "userEmail": doc["userEmail"],
+                    "event.team_1": doc["event"]["team_1"],
+                    "event.team_2": doc["event"]["team_2"],
+                    "event.date": doc["event"]["date"],
+                    "bet.team": doc["bet"].get("team"),
+                    "bet.choice": doc["bet"].get("choice")
+                })
+
+                if duplicate:
+                    skipped_duplicates += 1
+                    continue  # skip insert
+
                 res = BETS.insert_one(doc)
                 inserted_ids.append(res.inserted_id)
 
             # success → clear cart
             r.delete(key)
+
+            message = "Checkout successful"
+            if skipped_duplicates > 0:
+                message += f" (skipped {skipped_duplicates} duplicate bets)"
+
             return jsonify({
-                "message": "Checkout successful",
+                "message": message,
                 "count": len(inserted_ids),
+                "skipped": skipped_duplicates,
                 "betIds": [str(x) for x in inserted_ids]
             }), 201
         except Exception as e:
-            # rollback: delete inserted bets and refund
+            # rollback: delete inserted bets and refund balance
             if inserted_ids:
                 BETS.delete_many({"_id": {"$in": inserted_ids}})
             USERS.update_one(selector, {"$inc": {"balance": Decimal128(str(total_stake))}})
             return jsonify({"error": "Checkout failed", "details": str(e)}), 500
-
 
 
