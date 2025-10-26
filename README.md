@@ -5,6 +5,7 @@ MongoDB Atlas database + Flask REST API for a simple sports betting system.
 Four core collections: `User`, `Team`, `Matches`, `Bets`.
 
 Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-to-end checks.
+**Now with Redis-powered betting cart (TTL), caching, and locking for safe concurrency.**
 
 # Table of Contents
 
@@ -34,6 +35,8 @@ Ready-to-use endpoints (Postman-friendly) and small automation scripts for end-t
    * [Bets](#bets-1)
 
      * [Aggregation](#agregation)
+9. [Redis Cart, Caching & Locking](#redis-cart-caching--locking)
+10. [Docs / Presentations](#docs--presentations)
 
 ---
 ## Collections
@@ -391,3 +394,26 @@ Per-user aggregation with totals.
   }
 ]
 ```
+
+## Redis Cart, Caching & Locking
+The project has **Redis** integration for three purposes:  
+- **Temporary "betting cart" with TTL (3 days)** — users can add multiple bets and later confirm them via checkout (transferring to MongoDB). The system checks the balance, rejects **duplicates**, and clears the cart after successful transfer. See details and examples in the files “README_cart.md”.  
+- **Caching** — for expensive filters/aggregations (JSON serialization, `setex`, TTL with “jitter” + invalidation helpers and pattern invalidation). See “RedisIntegration.md”.  
+- **Locks for safe concurrent writes** — Redis lock keys are used for updating balances and preventing duplicates during concurrent requests. See “RedisIntegration.md”.
+
+### Briefly about the Cart API (Postman-friendly)
+- `POST /cart/items` – add an item to the cart (stored in a per-user Redis hash; TTL is refreshed).  
+- `GET /cart?user=<email|id>` – view the cart (returns `items`, `total`, `ttl`).  
+- `PATCH /cart/items/<itemId>` – update an entry; `DELETE /cart/items/<itemId>?user=<...>` – delete; `DELETE /cart/clear?user=<...>` – clear the entire cart.  
+- `POST /cart/checkout` – **Redis → MongoDB**: validates the user, sums the stake, checks the balance, deducts the full amount **once**, inserts bets, clears the cart; duplicates are skipped.
+
+### Briefly about Caching/Invalidation
+- Helpers: `cache_get_json`, `cache_set_json(key, value, ttl)` (with random “jitter”), `invalidate(*keys)`, `invalidate_pattern(pattern)`.  
+- Use after “write” operations (e.g., `bets`, `matches`) to avoid outdated responses.
+
+## Docs / Presentations
+
+- **README_cart.md** — Redis betting cart and checkout end-to-end: architecture, API examples, TTL (3 days), duplicate prevention, testing script `test_cart_flow.py`.  
+- **RedisIntegration.md** — Redis connection setup, JSON caching with TTL + jitter, cache invalidation strategies, Redis locks, and concurrency protection.
+
+
