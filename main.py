@@ -24,7 +24,7 @@ register_bets_routes(app, db)
 from user import register_users_routes
 register_users_routes(app, db)
 
-from cart import register_cart_routes   # arba tikras tavo failo pavadinimas
+from cart import register_cart_routes
 register_cart_routes(app, db)
 
 if __name__ == "__main__":
