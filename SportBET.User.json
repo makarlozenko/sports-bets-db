@@ -1,0 +1,275 @@
+[{
+  "_id": {
+    "$oid": "ee576a2c1f82513b2d4b8047"
+  },
+  "firstName": "Dovydas",
+  "lastName": "Sakalauskas",
+  "phone": "+37068575854",
+  "email": "dovydas.sakalauskas5@gmail.com",
+  "birthDate": {
+    "$date": "2002-09-03T00:00:00.000Z"
+  },
+  "IBAN": "SE529164967822249249",
+  "balance": {
+    "$numberDecimal": "1072.20"
+  },
+  "nickname": "dovydas5"
+},
+{
+  "_id": {
+    "$oid": "3b43df693db1b3fec4f1746b"
+  },
+  "firstName": "Deividas",
+  "lastName": "Kazlauskas",
+  "phone": "+37067933189",
+  "email": "deividas.kazlauskas8@outlook.com",
+  "birthDate": {
+    "$date": "1998-03-19T00:00:00.000Z"
+  },
+  "IBAN": "NL364890356344599221",
+  "balance": {
+    "$numberDecimal": "1301.63"
+  },
+  "nickname": "deividas8"
+},
+{
+  "_id": {
+    "$oid": "8168436d711282f2d6325699"
+  },
+  "firstName": "Rokas",
+  "lastName": "Valinskas",
+  "phone": "+37064731871",
+  "email": "rokas.valinskas11@gmail.com",
+  "birthDate": {
+    "$date": "2001-02-22T00:00:00.000Z"
+  },
+  "IBAN": "GB468271581777858276",
+  "balance": {
+    "$numberDecimal": "99.52"
+  },
+  "nickname": "rokas11"
+},
+{
+  "_id": {
+    "$oid": "20ba1f0e3b20a2c5dcce32d6"
+  },
+  "firstName": "Rytis",
+  "lastName": "Jankauskas",
+  "phone": "+37061300548",
+  "email": "rytis.jankauskas13@gmail.com",
+  "birthDate": {
+    "$date": "1992-01-19T00:00:00.000Z"
+  },
+  "IBAN": "LV309967591552165538",
+  "balance": {
+    "$numberDecimal": "1128.32"
+  },
+  "nickname": "rytis13"
+},
+{
+  "_id": {
+    "$oid": "e93a0f7af34dc02aa72b4a21"
+  },
+  "firstName": "Justas",
+  "lastName": "Povilaitis",
+  "phone": "+37068126523",
+  "email": "justas.povilaitis2@outlook.com",
+  "birthDate": {
+    "$date": "1995-12-28T00:00:00.000Z"
+  },
+  "IBAN": "LV432142421124092793",
+  "balance": {
+    "$numberDecimal": "462.34"
+  },
+  "nickname": "justas2"
+},
+{
+  "_id": {
+    "$oid": "327dff8b4f0efe26ea730666"
+  },
+  "firstName": "Paulius",
+  "lastName": "Grabauskas",
+  "phone": "+37065015127",
+  "email": "paulius.grabauskas7@outlook.com",
+  "birthDate": {
+    "$date": "2001-07-19T00:00:00.000Z"
+  },
+  "IBAN": "GB202146595222774238",
+  "balance": {
+    "$numberDecimal": "444.24"
+  },
+  "nickname": "paulius7"
+},
+{
+  "_id": {
+    "$oid": "8d9cc45d35ce8e2e3b298446"
+  },
+  "firstName": "Mantas",
+  "lastName": "Gedgaudas",
+  "phone": "+37062169010",
+  "email": "mantas.gedgaudas10@outlook.com",
+  "birthDate": {
+    "$date": "2000-09-11T00:00:00.000Z"
+  },
+  "IBAN": "PL445304977243119568",
+  "balance": {
+    "$numberDecimal": "299.32"
+  },
+  "nickname": "mantas10"
+},
+{
+  "_id": {
+    "$oid": "dc8bc642867a5abda5321564"
+  },
+  "firstName": "Antanas",
+  "lastName": "Urbonas",
+  "phone": "+37065897497",
+  "email": "antanas.urbonas12@outlook.com",
+  "birthDate": {
+    "$date": "1991-10-17T00:00:00.000Z"
+  },
+  "IBAN": "NL767392888005595314",
+  "balance": {
+    "$numberDecimal": "1130.52"
+  },
+  "nickname": "antanas12"
+},
+{
+  "_id": {
+    "$oid": "d86b5f978ef1d4c0d78134b4"
+  },
+  "firstName": "Edvinas",
+  "lastName": "Masiulis",
+  "phone": "+37064271769",
+  "email": "edvinas.masiulis0@outlook.com",
+  "birthDate": {
+    "$date": "1987-04-07T00:00:00.000Z"
+  },
+  "IBAN": "EE685147538638153748",
+  "balance": {
+    "$numberDecimal": "1240.3668"
+  },
+  "nickname": "edvinas0"
+},
+{
+  "_id": {
+    "$oid": "dc4e67460108e467079fe68e"
+  },
+  "firstName": "Martynas",
+  "lastName": "Grigonis",
+  "phone": "+37065076420",
+  "email": "martynas.grigonis1@outlook.com",
+  "birthDate": {
+    "$date": "1994-09-15T00:00:00.000Z"
+  },
+  "IBAN": "LT924741339289289509",
+  "balance": {
+    "$numberDecimal": "1902.41"
+  },
+  "nickname": "martynas1"
+},
+{
+  "_id": {
+    "$oid": "c071c814fe9cdca5ef9eda76"
+  },
+  "firstName": "Tomas",
+  "lastName": "Sadauskas",
+  "phone": "+37065030693",
+  "email": "tomas.sadauskas3@gmail.com",
+  "birthDate": {
+    "$date": "1991-02-21T00:00:00.000Z"
+  },
+  "IBAN": "NL055358725306032771",
+  "balance": {
+    "$numberDecimal": "1778.46"
+  },
+  "nickname": "tomas3"
+},
+{
+  "_id": {
+    "$oid": "5eeb3cb1190ffc922f711a27"
+  },
+  "firstName": "Karolis",
+  "lastName": "Zalkauskas",
+  "phone": "+37064321992",
+  "email": "karolis.zalkauskas4@gmail.com",
+  "birthDate": {
+    "$date": "1999-02-04T00:00:00.000Z"
+  },
+  "IBAN": "LT295857537193319412",
+  "balance": {
+    "$numberDecimal": "880.23"
+  },
+  "nickname": "karolis4"
+},
+{
+  "_id": {
+    "$oid": "c5f7a8d385c66d593913637f"
+  },
+  "firstName": "Lukas",
+  "lastName": "Petraitis",
+  "phone": "+37069533337",
+  "email": "lukas.petraitis6@outlook.com",
+  "birthDate": {
+    "$date": "2003-06-05T00:00:00.000Z"
+  },
+  "IBAN": "SE935547270956623015",
+  "balance": {
+    "$numberDecimal": "1787.99"
+  },
+  "nickname": "lukas6"
+},
+{
+  "_id": {
+    "$oid": "65c002ebd2eaa1e22eda7924"
+  },
+  "firstName": "Gytis",
+  "lastName": "Bieliauskas",
+  "phone": "+37063265580",
+  "email": "gytis.bieliauskas9@outlook.com",
+  "birthDate": {
+    "$date": "1990-07-15T00:00:00.000Z"
+  },
+  "IBAN": "DE552928712052082853",
+  "balance": {
+    "$numberDecimal": "1229.70"
+  },
+  "nickname": "gytis9"
+},
+{
+  "_id": {
+    "$oid": "d1449f76f78f46d2ac09d832"
+  },
+  "firstName": "Aurimas",
+  "lastName": "Mikalauskas",
+  "phone": "+37067942139",
+  "email": "aurimas.mikalauskas14@gmail.com",
+  "birthDate": {
+    "$date": "2006-06-02T00:00:00.000Z"
+  },
+  "IBAN": "LV773816386165657202",
+  "balance": {
+    "$numberDecimal": "532.24"
+  },
+  "nickname": "aurimas14"
+},
+{
+  "_id": {
+    "$oid": "68f27893e6f79eef77a5c165"
+  },
+  "email": "arina.ti@outlook.com",
+  "nickname": "arti",
+  "firstName": "Arina",
+  "lastName": "Perzu",
+  "phone": "+37064271200",
+  "IBAN": "EE685147538638153749",
+  "balance": {
+    "$numberDecimal": "940.00"
+  },
+  "birthDate": {
+    "$date": "1990-11-07T00:00:00.000Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-17T17:10:43.435Z"
+  }
+}]

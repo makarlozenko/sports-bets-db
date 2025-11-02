@@ -1,0 +1,574 @@
+[{
+  "_id": {
+    "$oid": "a6a35872db117dea033f62d1"
+  },
+  "userId": {
+    "$oid": "dc4e67460108e467079fe68e"
+  },
+  "userEmail": "martynas.grigonis1@outlook.com",
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Klaipeda Mariners",
+    "type": "league",
+    "date": {
+      "$date": "2025-09-29T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Vilnius Wolves",
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": {
+      "$date": "2025-07-01T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "401cdcc038a73d3cae3a71d5"
+  },
+  "userId": {
+    "$oid": "dc4e67460108e467079fe68e"
+  },
+  "userEmail": "martynas.grigonis1@outlook.com",
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Panevezys Titans",
+    "type": "league",
+    "date": {
+      "$date": "2025-10-06T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "score",
+    "score": {
+      "team_1": 14,
+      "team_2": 132
+    },
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": {
+      "$date": "2025-07-05T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "396017677075973e59f84f18"
+  },
+  "userId": {
+    "$oid": "c071c814fe9cdca5ef9eda76"
+  },
+  "userEmail": "tomas.sadauskas3@gmail.com",
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Kaunas Green",
+    "type": "league",
+    "date": {
+      "$date": "2025-09-01T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Kaunas Green",
+    "stake": {
+      "$numberDecimal": "10.00"
+    },
+    "createdAt": {
+      "$date": "2025-09-01T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "936ac7180e9fcced3bacbc14"
+  },
+  "userId": {
+    "$oid": "c071c814fe9cdca5ef9eda76"
+  },
+  "userEmail": "tomas.sadauskas3@gmail.com",
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Klaipeda Mariners",
+    "type": "league",
+    "date": {
+      "$date": "2025-09-29T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "score",
+    "score": {
+      "team_1": 332,
+      "team_2": 41
+    },
+    "stake": {
+      "$numberDecimal": "10.00"
+    },
+    "createdAt": {
+      "$date": "2025-07-05T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "6f24442562c4aa6edcf5a487"
+  },
+  "userId": {
+    "$oid": "d86b5f978ef1d4c0d78134b4"
+  },
+  "userEmail": "edvinas.masiulis0@outlook.com",
+  "event": {
+    "team_1": "Vilnius FC",
+    "team_2": "Kaunas United",
+    "type": "league",
+    "date": {
+      "$date": "2025-08-15T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Vilnius FC",
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": {
+      "$date": "2025-09-01T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "b2bfe6037f0bd250393e492a"
+  },
+  "userId": {
+    "$oid": "d86b5f978ef1d4c0d78134b4"
+  },
+  "userEmail": "edvinas.masiulis0@outlook.com",
+  "event": {
+    "team_1": "Vilnius FC",
+    "team_2": "Panevezys Town",
+    "type": "league",
+    "date": {
+      "$date": "2025-08-29T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "score",
+    "score": {
+      "team_1": 3,
+      "team_2": 3
+    },
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": {
+      "$date": "2025-07-05T00:00:00.000Z"
+    }
+  },
+  "status": "lost"
+},
+{
+  "_id": {
+    "$oid": "328690bba8f7e9712e3dcdde"
+  },
+  "userId": {
+    "$oid": "e93a0f7af34dc02aa72b4a21"
+  },
+  "userEmail": "justas.povilaitis2@outlook.com",
+  "event": {
+    "team_1": "Kaunas United",
+    "team_2": "Vilnius FC",
+    "type": "league",
+    "date": {
+      "$date": "2025-08-15T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "score",
+    "score": {
+      "team_1": 0,
+      "team_2": 0
+    },
+    "stake": {
+      "$numberDecimal": "10.00"
+    },
+    "createdAt": {
+      "$date": "2025-09-01T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "ca3085cd40ba06e6b3c37f8d"
+  },
+  "userId": {
+    "$oid": "e93a0f7af34dc02aa72b4a21"
+  },
+  "userEmail": "justas.povilaitis2@outlook.com",
+  "event": {
+    "team_1": "Vilnius FC",
+    "team_2": "Panevezys Town",
+    "type": "league",
+    "date": {
+      "$date": "2025-08-29T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "score",
+    "score": {
+      "team_1": 0,
+      "team_2": 2
+    },
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": {
+      "$date": "2025-09-01T00:00:00.000Z"
+    }
+  },
+  "status": "lost"
+},
+{
+  "_id": {
+    "$oid": "2c9c56689d94546f54ccd71e"
+  },
+  "userId": {
+    "$oid": "c071c814fe9cdca5ef9eda76"
+  },
+  "userEmail": "tomas.sadauskas3@gmail.com",
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Panevezys Titans",
+    "type": "league",
+    "date": {
+      "$date": "2025-10-06T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "score",
+    "score": {
+      "team_1": 78,
+      "team_2": 80
+    },
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": {
+      "$date": "2025-09-01T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "6b5fbe24d786cf52464cbb53"
+  },
+  "userId": {
+    "$oid": "d86b5f978ef1d4c0d78134b4"
+  },
+  "userEmail": "edvinas.masiulis0@outlook.com",
+  "event": {
+    "team_1": "Vilnius FC",
+    "team_2": "Klaipeda City",
+    "type": "league",
+    "date": {
+      "$date": "2025-08-22T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "score",
+    "score": {
+      "team_1": 0,
+      "team_2": 4
+    },
+    "stake": {
+      "$numberDecimal": "10.00"
+    },
+    "createdAt": {
+      "$date": "2025-07-05T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "8475cf5bbcf1f231a7c975fa"
+  },
+  "userId": {
+    "$oid": "dc4e67460108e467079fe68e"
+  },
+  "userEmail": "martynas.grigonis1@outlook.com",
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Kaunas Green",
+    "type": "league",
+    "date": {
+      "$date": "2025-09-01T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "score",
+    "score": {
+      "team_1": 400,
+      "team_2": 222
+    },
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": {
+      "$date": "2025-07-05T00:00:00.000Z"
+    }
+  },
+  "status": "lost"
+},
+{
+  "_id": {
+    "$oid": "00870a65bb4119f92658d0cd"
+  },
+  "userId": {
+    "$oid": "e93a0f7af34dc02aa72b4a21"
+  },
+  "userEmail": "justas.povilaitis2@outlook.com",
+  "event": {
+    "team_1": "Vilnius FC",
+    "team_2": "Klaipeda City",
+    "type": "league",
+    "date": {
+      "$date": "2025-08-22T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Vilnius FC",
+    "stake": {
+      "$numberDecimal": "50.00"
+    },
+    "createdAt": {
+      "$date": "2025-07-01T00:00:00.000Z"
+    }
+  },
+  "status": "lost"
+},
+{
+  "_id": {
+    "$oid": "9e810caf0c85f9e99457b869"
+  },
+  "userId": {
+    "$oid": "c071c814fe9cdca5ef9eda76"
+  },
+  "userEmail": "tomas.sadauskas3@gmail.com",
+  "event": {
+    "team_1": "Vilnius FC",
+    "team_2": "Kaunas United",
+    "type": "league",
+    "date": {
+      "$date": "2025-08-15T00:00:00.000Z"
+    }
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Kaunas United",
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": {
+      "$date": "2025-07-01T00:00:00.000Z"
+    }
+  },
+  "status": "won"
+},
+{
+  "_id": {
+    "$oid": "68fb597b26d8bf67ec572cde"
+  },
+  "userEmail": "arina.ti@outlook.com",
+  "userId": {
+    "$oid": "68f27893e6f79eef77a5c165"
+  },
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Klaipeda Mariners",
+    "type": "league",
+    "date": "2025-09-29"
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Vilnius Wolves",
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": "2025-07-01"
+  },
+  "status": "won",
+  "createdAt": {
+    "$date": "2025-10-24T10:48:27.476Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68fb5f81725da46fcbf115ad"
+  },
+  "userEmail": "arina.ti@outlook.com",
+  "userId": {
+    "$oid": "68f27893e6f79eef77a5c165"
+  },
+  "event": {
+    "team_1": "Vilnius FC",
+    "team_2": "Klaipeda City",
+    "type": "league",
+    "date": "2025-08-22"
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Klaipeda City",
+    "stake": {
+      "$numberDecimal": "20.00"
+    }
+  },
+  "status": "pending",
+  "createdAt": {
+    "$date": "2025-10-24T11:14:09.383Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68fb70d994d2fccc66dbda55"
+  },
+  "userEmail": "arina.ti@outlook.com",
+  "userId": {
+    "$oid": "68f27893e6f79eef77a5c165"
+  },
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Panevezys Titans",
+    "type": "league",
+    "date": "2025-10-06"
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Vilnius Wolves",
+    "stake": {
+      "$numberDecimal": "10.00"
+    },
+    "createdAt": "2025-09-01"
+  },
+  "status": "won",
+  "createdAt": {
+    "$date": "2025-10-24T12:28:09.529Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69048f485fe60f78859e24b7"
+  },
+  "userEmail": "arina.ti@outlook.com",
+  "userId": {
+    "$oid": "68f27893e6f79eef77a5c165"
+  },
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Kaunas Green",
+    "type": "league",
+    "date": "2025-09-01"
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Vilnius Wolves",
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": "2025-07-01"
+  },
+  "status": "pending",
+  "createdAt": {
+    "$date": "2025-10-31T10:28:24.894Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6904a44faf8c3659c9842063"
+  },
+  "userEmail": "dovydas.sakalauskas5@gmail.comm",
+  "userId": {
+    "$oid": "ee576a2c1f82513b2d4b8047"
+  },
+  "event": {
+    "team_1": "Vilnius Wolves",
+    "team_2": "Kaunas Green",
+    "type": "league",
+    "date": "2025-09-01"
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Vilnius Wolves",
+    "stake": {
+      "$numberDecimal": "20.00"
+    },
+    "createdAt": "2025-07-01"
+  },
+  "status": "pending",
+  "createdAt": {
+    "$date": "2025-10-31T11:58:07.129Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6904a52baf8c3659c9842064"
+  },
+  "userEmail": "dovydas.sakalauskas5@gmail.com",
+  "userId": {
+    "$oid": "ee576a2c1f82513b2d4b8047"
+  },
+  "event": {
+    "team_1": "Vilnius FC",
+    "team_2": "Panevezys Town",
+    "type": "league",
+    "date": "2025-08-29"
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Panevezys Town",
+    "stake": {
+      "$numberDecimal": "25.00"
+    }
+  },
+  "status": "pending",
+  "createdAt": {
+    "$date": "2025-10-31T12:01:47.675Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6904a52baf8c3659c9842065"
+  },
+  "userEmail": "dovydas.sakalauskas5@gmail.com",
+  "userId": {
+    "$oid": "ee576a2c1f82513b2d4b8047"
+  },
+  "event": {
+    "team_1": "Kaunas United",
+    "team_2": "Riga City",
+    "type": "league",
+    "date": "2025-08-29"
+  },
+  "bet": {
+    "choice": "winner",
+    "team": "Riga City",
+    "stake": {
+      "$numberDecimal": "40.00"
+    }
+  },
+  "status": "pending",
+  "createdAt": {
+    "$date": "2025-10-31T12:01:47.675Z"
+  }
+}]

@@ -1,0 +1,1842 @@
+[{
+  "_id": {
+    "$oid": "7fdefe8df5451ce01ef5f6d4"
+  },
+  "sport": "football",
+  "teamName": "Siauliai Stars",
+  "rating": 1654,
+  "coaches": [
+    {
+      "firstName": "Justas",
+      "lastName": "Sarka",
+      "experienceYears": 5,
+      "coachType": "head coach"
+    },
+    {
+      "firstName": "Karolis",
+      "lastName": "Sakalauskas",
+      "experienceYears": 7,
+      "coachType": "assistant coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Martynas",
+      "lastName": "Vilkas",
+      "role": "goalkeeper",
+      "birthDate": {
+        "$date": "2000-11-07T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 32,
+        "penaltiesReceived": 7
+      }
+    },
+    {
+      "firstName": "Arnas",
+      "lastName": "Grigonis",
+      "role": "defender (RB)",
+      "birthDate": {
+        "$date": "2003-02-10T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 32,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Dovydas",
+      "lastName": "Grabauskas",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "1998-02-27T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 15,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Tadas",
+      "lastName": "Urbonas",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "2005-04-05T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Kairys",
+      "role": "defender (LB)",
+      "birthDate": {
+        "$date": "2002-02-15T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 26,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Benitas",
+      "lastName": "Masiulis",
+      "role": "midfielder (CDM)",
+      "birthDate": {
+        "$date": "2004-12-13T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 31,
+        "penaltiesReceived": 6
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Stankevicius",
+      "role": "midfielder (CM)",
+      "birthDate": {
+        "$date": "2003-12-01T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 6,
+        "penaltiesReceived": 6
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Grigonis",
+      "role": "midfielder (CAM)",
+      "birthDate": {
+        "$date": "2005-12-17T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 29,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Domas",
+      "lastName": "Urbonas",
+      "role": "midfielder (RM)",
+      "birthDate": {
+        "$date": "1994-08-05T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 29,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Gytis",
+      "lastName": "Sarka",
+      "role": "midfielder (LM)",
+      "birthDate": {
+        "$date": "2002-06-25T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 28,
+        "penaltiesReceived": 9
+      }
+    },
+    {
+      "firstName": "Arnas",
+      "lastName": "Sadauskas",
+      "role": "forward (ST)",
+      "birthDate": {
+        "$date": "1999-09-15T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 10,
+        "penaltiesReceived": 7
+      }
+    },
+    {
+      "firstName": "Martynas",
+      "lastName": "Petraitis",
+      "role": "reserve (defender)",
+      "birthDate": {
+        "$date": "2005-04-27T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 10,
+        "penaltiesReceived": 2
+      }
+    },
+    {
+      "firstName": "Gytis",
+      "lastName": "Kairys",
+      "role": "reserve (midfielder)",
+      "birthDate": {
+        "$date": "2003-04-09T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 7,
+        "penaltiesReceived": 0
+      }
+    }
+  ]
+},
+{
+  "_id": {
+    "$oid": "f7b99ba65b07aa9fe0d8e028"
+  },
+  "sport": "basketball",
+  "teamName": "Klaipeda Mariners",
+  "rating": 1723,
+  "coaches": [
+    {
+      "firstName": "Rytis",
+      "lastName": "Kairys",
+      "experienceYears": 15,
+      "coachType": "head coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Martynas",
+      "lastName": "Petrauskas",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "1994-05-08T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1856,
+        "penaltiesReceived": 36
+      }
+    },
+    {
+      "firstName": "Tadas",
+      "lastName": "Gedgaudas",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "2002-06-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2467,
+        "penaltiesReceived": 72
+      }
+    },
+    {
+      "firstName": "Deividas",
+      "lastName": "Sakalauskas",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "2004-09-11T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1641,
+        "penaltiesReceived": 63
+      }
+    },
+    {
+      "firstName": "Rokas",
+      "lastName": "Zalkauskas",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "1997-04-04T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 988,
+        "penaltiesReceived": 45
+      }
+    },
+    {
+      "firstName": "Jonas",
+      "lastName": "Valinskas",
+      "role": "center",
+      "birthDate": {
+        "$date": "2001-12-06T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 984,
+        "penaltiesReceived": 32
+      }
+    },
+    {
+      "firstName": "Arnas",
+      "lastName": "Kairys",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "1997-12-19T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2348,
+        "penaltiesReceived": 41
+      }
+    },
+    {
+      "firstName": "Jonas",
+      "lastName": "Masiulis",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "1997-04-12T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 934,
+        "penaltiesReceived": 43
+      }
+    },
+    {
+      "firstName": "Marius",
+      "lastName": "Povilaitis",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "2001-03-09T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 386,
+        "penaltiesReceived": 11
+      }
+    },
+    {
+      "firstName": "Domas",
+      "lastName": "Zalkauskas",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "2004-03-21T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2210,
+        "penaltiesReceived": 18
+      }
+    },
+    {
+      "firstName": "Marius",
+      "lastName": "Jucevicius",
+      "role": "center",
+      "birthDate": {
+        "$date": "1997-08-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2004,
+        "penaltiesReceived": 48
+      }
+    },
+    {
+      "firstName": "Paulius",
+      "lastName": "Sabonis",
+      "role": "wing (SF/SG)",
+      "birthDate": {
+        "$date": "1997-08-04T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 467,
+        "penaltiesReceived": 56
+      }
+    },
+    {
+      "firstName": "Antanas",
+      "lastName": "Jankauskas",
+      "role": "big (PF/C)",
+      "birthDate": {
+        "$date": "2002-11-22T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 419,
+        "penaltiesReceived": 24
+      }
+    },
+    {
+      "firstName": "Tomas",
+      "lastName": "Jucevicius",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "1997-02-08T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 110,
+        "penaltiesReceived": 17
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Grabauskas",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "2002-10-08T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 447,
+        "penaltiesReceived": 16
+      }
+    }
+  ]
+},
+{
+  "_id": {
+    "$oid": "dbb3de051049832dd663e496"
+  },
+  "sport": "basketball",
+  "teamName": "Kaunas Green",
+  "rating": 1746,
+  "coaches": [
+    {
+      "firstName": "Mantas",
+      "lastName": "Petraitis",
+      "experienceYears": 10,
+      "coachType": "head coach"
+    },
+    {
+      "firstName": "Domas",
+      "lastName": "Jankauskas",
+      "experienceYears": 4,
+      "coachType": "assistant coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Tomas",
+      "lastName": "Urbonas",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "1999-12-05T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1076,
+        "penaltiesReceived": 13
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Sakalauskas",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "1998-09-15T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1903,
+        "penaltiesReceived": 12
+      }
+    },
+    {
+      "firstName": "Karolis",
+      "lastName": "Sakalauskas",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "1999-10-23T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 280,
+        "penaltiesReceived": 78
+      }
+    },
+    {
+      "firstName": "Justas",
+      "lastName": "Kairys",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "1993-06-10T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1797,
+        "penaltiesReceived": 58
+      }
+    },
+    {
+      "firstName": "Domas",
+      "lastName": "Valinskas",
+      "role": "center",
+      "birthDate": {
+        "$date": "2004-09-26T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2670,
+        "penaltiesReceived": 33
+      }
+    },
+    {
+      "firstName": "Antanas",
+      "lastName": "Urbonas",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "1997-07-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 318,
+        "penaltiesReceived": 54
+      }
+    },
+    {
+      "firstName": "Lukas",
+      "lastName": "Gedgaudas",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "2003-07-24T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 876,
+        "penaltiesReceived": 64
+      }
+    },
+    {
+      "firstName": "Tomas",
+      "lastName": "Grabauskas",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "2001-01-13T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2624,
+        "penaltiesReceived": 77
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Petrauskas",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "1994-11-14T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 755,
+        "penaltiesReceived": 64
+      }
+    },
+    {
+      "firstName": "Paulius",
+      "lastName": "Sabonis",
+      "role": "center",
+      "birthDate": {
+        "$date": "1997-07-11T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1066,
+        "penaltiesReceived": 63
+      }
+    },
+    {
+      "firstName": "Lukas",
+      "lastName": "Stonys",
+      "role": "wing (SF/SG)",
+      "birthDate": {
+        "$date": "2005-07-09T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1926,
+        "penaltiesReceived": 37
+      }
+    },
+    {
+      "firstName": "Rimantas",
+      "lastName": "Kairys",
+      "role": "big (PF/C)",
+      "birthDate": {
+        "$date": "1993-12-18T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 413,
+        "penaltiesReceived": 49
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Bieliauskas",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "1994-11-02T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 436,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Masiulis",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "1993-10-05T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 172,
+        "penaltiesReceived": 4
+      }
+    }
+  ]
+},
+{
+  "_id": {
+    "$oid": "cbf7c1086104519bacad1078"
+  },
+  "sport": "football",
+  "teamName": "Kaunas United",
+  "rating": 1627,
+  "coaches": [
+    {
+      "firstName": "Karolis",
+      "lastName": "Masiulis",
+      "experienceYears": 13,
+      "coachType": "head coach"
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Grigonis",
+      "experienceYears": 6,
+      "coachType": "assistant coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Martynas",
+      "lastName": "Urbonas",
+      "role": "goalkeeper",
+      "birthDate": {
+        "$date": "1994-08-26T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 35,
+        "penaltiesReceived": 1
+      }
+    },
+    {
+      "firstName": "Dainius",
+      "lastName": "Bieliauskas",
+      "role": "defender (RB)",
+      "birthDate": {
+        "$date": "2001-01-03T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 15,
+        "penaltiesReceived": 2
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Kairys",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "2000-04-28T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 25,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Paulius",
+      "lastName": "Valiukas",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "1993-07-09T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 29,
+        "penaltiesReceived": 4
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Povilaitis",
+      "role": "defender (LB)",
+      "birthDate": {
+        "$date": "2004-09-22T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 31,
+        "penaltiesReceived": 2
+      }
+    },
+    {
+      "firstName": "Karolis",
+      "lastName": "Zalkauskas",
+      "role": "midfielder (CDM)",
+      "birthDate": {
+        "$date": "1996-01-19T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 34,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Arnas",
+      "lastName": "Stonys",
+      "role": "midfielder (CM)",
+      "birthDate": {
+        "$date": "1993-01-19T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 30,
+        "penaltiesReceived": 8
+      }
+    },
+    {
+      "firstName": "Gytis",
+      "lastName": "Grigonis",
+      "role": "midfielder (CAM)",
+      "birthDate": {
+        "$date": "1993-09-03T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 11,
+        "penaltiesReceived": 1
+      }
+    },
+    {
+      "firstName": "Aurimas",
+      "lastName": "Jankauskas",
+      "role": "midfielder (RM)",
+      "birthDate": {
+        "$date": "2003-04-13T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 7,
+        "penaltiesReceived": 9
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Jucevicius",
+      "role": "midfielder (LM)",
+      "birthDate": {
+        "$date": "2002-01-20T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 5,
+        "penaltiesReceived": 6
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Jucevicius",
+      "role": "forward (ST)",
+      "birthDate": {
+        "$date": "2002-09-11T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 16,
+        "penaltiesReceived": 3
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Povilaitis",
+      "role": "reserve (defender)",
+      "birthDate": {
+        "$date": "1998-04-09T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 6,
+        "penaltiesReceived": 1
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Bieliauskas",
+      "role": "reserve (midfielder)",
+      "birthDate": {
+        "$date": "1997-08-11T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1,
+        "penaltiesReceived": 0
+      }
+    }
+  ]
+},
+{
+  "_id": {
+    "$oid": "3c4433abb58be0f4256ae387"
+  },
+  "sport": "basketball",
+  "teamName": "Vilnius Wolves",
+  "rating": 1842,
+  "coaches": [
+    {
+      "firstName": "Edgaras",
+      "lastName": "Kazlauskas",
+      "experienceYears": 14,
+      "coachType": "head coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Martynas",
+      "lastName": "Povilaitis",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "1997-06-06T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2681,
+        "penaltiesReceived": 19
+      }
+    },
+    {
+      "firstName": "Paulius",
+      "lastName": "Zalkauskas",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "1994-10-01T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1477,
+        "penaltiesReceived": 78
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Valiukas",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "1999-12-07T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 511,
+        "penaltiesReceived": 80
+      }
+    },
+    {
+      "firstName": "Rytis",
+      "lastName": "Bieliauskas",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "1996-02-23T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1435,
+        "penaltiesReceived": 20
+      }
+    },
+    {
+      "firstName": "Benitas",
+      "lastName": "Sabonis",
+      "role": "center",
+      "birthDate": {
+        "$date": "1998-09-14T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2909,
+        "penaltiesReceived": 52
+      }
+    },
+    {
+      "firstName": "Rimantas",
+      "lastName": "Sadauskas",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "2003-06-01T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1920,
+        "penaltiesReceived": 67
+      }
+    },
+    {
+      "firstName": "Jonas",
+      "lastName": "Sakalauskas",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "1998-11-27T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2083,
+        "penaltiesReceived": 24
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Grigonis",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "2004-09-21T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1306,
+        "penaltiesReceived": 73
+      }
+    },
+    {
+      "firstName": "Antanas",
+      "lastName": "Vilkas",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "1999-12-19T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1299,
+        "penaltiesReceived": 46
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Jankauskas",
+      "role": "center",
+      "birthDate": {
+        "$date": "1997-08-08T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2103,
+        "penaltiesReceived": 77
+      }
+    },
+    {
+      "firstName": "Aurimas",
+      "lastName": "Gedgaudas",
+      "role": "wing (SF/SG)",
+      "birthDate": {
+        "$date": "1999-06-01T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2224,
+        "penaltiesReceived": 46
+      }
+    },
+    {
+      "firstName": "Paulius",
+      "lastName": "Kairys",
+      "role": "big (PF/C)",
+      "birthDate": {
+        "$date": "1996-06-26T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1258,
+        "penaltiesReceived": 48
+      }
+    },
+    {
+      "firstName": "Rokas",
+      "lastName": "Grabauskas",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "2004-05-18T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 55,
+        "penaltiesReceived": 16
+      }
+    },
+    {
+      "firstName": "Karolis",
+      "lastName": "Jankauskas",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "1996-12-14T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 300,
+        "penaltiesReceived": 17
+      }
+    }
+  ]
+},
+{
+  "_id": {
+    "$oid": "345f8e56b998281dd0d48320"
+  },
+  "sport": "football",
+  "teamName": "Vilnius FC",
+  "rating": 19,
+  "coaches": [
+    {
+      "firstName": "Gytis",
+      "lastName": "Petrauskas",
+      "experienceYears": 14,
+      "coachType": "head coach"
+    },
+    {
+      "firstName": "Marius",
+      "lastName": "Kazlauskas",
+      "experienceYears": 7,
+      "coachType": "assistant coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Tadas",
+      "lastName": "Urbonas",
+      "role": "goalkeeper",
+      "birthDate": {
+        "$date": "1993-04-19T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 5,
+        "penaltiesReceived": 1
+      }
+    },
+    {
+      "firstName": "Arnas",
+      "lastName": "Kairys",
+      "role": "defender (RB)",
+      "birthDate": {
+        "$date": "1994-09-25T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 8,
+        "penaltiesReceived": 2
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Kairys",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "2001-03-09T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 33,
+        "penaltiesReceived": 9
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Masiulis",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "2001-12-23T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 12,
+        "penaltiesReceived": 4
+      }
+    },
+    {
+      "firstName": "Justas",
+      "lastName": "Gedgaudas",
+      "role": "defender (LB)",
+      "birthDate": {
+        "$date": "2003-06-15T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 33,
+        "penaltiesReceived": 7
+      }
+    },
+    {
+      "firstName": "Jonas",
+      "lastName": "Urbonas",
+      "role": "midfielder (CDM)",
+      "birthDate": {
+        "$date": "1996-02-11T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1,
+        "penaltiesReceived": 9
+      }
+    },
+    {
+      "firstName": "Domas",
+      "lastName": "Urbonas",
+      "role": "midfielder (CM)",
+      "birthDate": {
+        "$date": "2002-04-01T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 4,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Dainius",
+      "lastName": "Urbonas",
+      "role": "midfielder (CAM)",
+      "birthDate": {
+        "$date": "1994-01-28T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 21,
+        "penaltiesReceived": 1
+      }
+    },
+    {
+      "firstName": "Gytis",
+      "lastName": "Urbonas",
+      "role": "midfielder (RM)",
+      "birthDate": {
+        "$date": "1997-11-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 13,
+        "penaltiesReceived": 8
+      }
+    },
+    {
+      "firstName": "Tomas",
+      "lastName": "Valinskas",
+      "role": "midfielder (LM)",
+      "birthDate": {
+        "$date": "2002-10-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 15,
+        "penaltiesReceived": 7
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Masiulis",
+      "role": "forward (ST)",
+      "birthDate": {
+        "$date": "1994-02-22T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 27,
+        "penaltiesReceived": 5
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Sakalauskas",
+      "role": "reserve (defender)",
+      "birthDate": {
+        "$date": "2000-12-02T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 10,
+        "penaltiesReceived": 5
+      }
+    },
+    {
+      "firstName": "Dovydas",
+      "lastName": "Kazlauskas",
+      "role": "reserve (midfielder)",
+      "birthDate": {
+        "$date": "1993-07-24T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 5,
+        "penaltiesReceived": 0
+      }
+    }
+  ],
+  "updated_at": {
+    "$date": "2025-10-10T06:59:04.856Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "c2d8953b3b4bd7c921e9ece3"
+  },
+  "sport": "football",
+  "teamName": "Klaipeda City",
+  "rating": 1900,
+  "coaches": [
+    {
+      "firstName": "Aurimas",
+      "lastName": "Jucevicius",
+      "experienceYears": 6,
+      "coachType": "head coach"
+    },
+    {
+      "firstName": "Karolis",
+      "lastName": "Sadauskas",
+      "experienceYears": 6,
+      "coachType": "assistant coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Tomas",
+      "lastName": "Mikalauskas",
+      "role": "goalkeeper",
+      "birthDate": {
+        "$date": "1994-04-12T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 18,
+        "penaltiesReceived": 2
+      }
+    },
+    {
+      "firstName": "Martynas",
+      "lastName": "Sarka",
+      "role": "defender (RB)",
+      "birthDate": {
+        "$date": "2004-05-20T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 33,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Sarka",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "1997-11-04T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 8,
+        "penaltiesReceived": 4
+      }
+    },
+    {
+      "firstName": "Jonas",
+      "lastName": "Kazlauskas",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "2004-09-05T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 17,
+        "penaltiesReceived": 4
+      }
+    },
+    {
+      "firstName": "Aurimas",
+      "lastName": "Masiulis",
+      "role": "defender (LB)",
+      "birthDate": {
+        "$date": "2004-06-07T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 40,
+        "penaltiesReceived": 4
+      }
+    },
+    {
+      "firstName": "Gytis",
+      "lastName": "Kairys",
+      "role": "midfielder (CDM)",
+      "birthDate": {
+        "$date": "1997-01-03T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 40,
+        "penaltiesReceived": 6
+      }
+    },
+    {
+      "firstName": "Rokas",
+      "lastName": "Sabonis",
+      "role": "midfielder (CM)",
+      "birthDate": {
+        "$date": "1993-06-25T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 8,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Rokas",
+      "lastName": "Grigonis",
+      "role": "midfielder (CAM)",
+      "birthDate": {
+        "$date": "2004-08-18T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 27,
+        "penaltiesReceived": 8
+      }
+    },
+    {
+      "firstName": "Marius",
+      "lastName": "Kazlauskas",
+      "role": "midfielder (RM)",
+      "birthDate": {
+        "$date": "1994-12-05T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 34,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Deividas",
+      "lastName": "Jucevicius",
+      "role": "midfielder (LM)",
+      "birthDate": {
+        "$date": "2001-03-14T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 8,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Tadas",
+      "lastName": "Mikalauskas",
+      "role": "forward (ST)",
+      "birthDate": {
+        "$date": "2005-01-12T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 13,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Gedgaudas",
+      "role": "reserve (defender)",
+      "birthDate": {
+        "$date": "1994-06-25T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 8,
+        "penaltiesReceived": 3
+      }
+    },
+    {
+      "firstName": "Aurimas",
+      "lastName": "Valinskas",
+      "role": "reserve (midfielder)",
+      "birthDate": {
+        "$date": "1995-04-28T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2,
+        "penaltiesReceived": 1
+      }
+    }
+  ],
+  "updated_at": {
+    "$date": "2025-10-10T11:52:17.374Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "cc49b9d10c0ff25149aaa394"
+  },
+  "sport": "football",
+  "teamName": "Panevezys Town",
+  "rating": 1711,
+  "coaches": [
+    {
+      "firstName": "Marius",
+      "lastName": "Grigonis",
+      "experienceYears": 10,
+      "coachType": "head coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Edvinas",
+      "lastName": "Gedgaudas",
+      "role": "goalkeeper",
+      "birthDate": {
+        "$date": "2004-04-09T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 10,
+        "penaltiesReceived": 1
+      }
+    },
+    {
+      "firstName": "Justas",
+      "lastName": "Sabonis",
+      "role": "defender (RB)",
+      "birthDate": {
+        "$date": "2000-04-07T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 29,
+        "penaltiesReceived": 5
+      }
+    },
+    {
+      "firstName": "Tadas",
+      "lastName": "Urbonas",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "1996-01-22T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 12,
+        "penaltiesReceived": 6
+      }
+    },
+    {
+      "firstName": "Lukas",
+      "lastName": "Petraitis",
+      "role": "defender (CB)",
+      "birthDate": {
+        "$date": "1994-05-12T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 32,
+        "penaltiesReceived": 6
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Sarka",
+      "role": "defender (LB)",
+      "birthDate": {
+        "$date": "1998-01-04T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 16,
+        "penaltiesReceived": 2
+      }
+    },
+    {
+      "firstName": "Benitas",
+      "lastName": "Petraitis",
+      "role": "midfielder (CDM)",
+      "birthDate": {
+        "$date": "1993-02-20T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 27,
+        "penaltiesReceived": 5
+      }
+    },
+    {
+      "firstName": "Arnas",
+      "lastName": "Stonys",
+      "role": "midfielder (CM)",
+      "birthDate": {
+        "$date": "1999-10-17T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 7,
+        "penaltiesReceived": 6
+      }
+    },
+    {
+      "firstName": "Benitas",
+      "lastName": "Masiulis",
+      "role": "midfielder (CAM)",
+      "birthDate": {
+        "$date": "1997-01-23T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 27,
+        "penaltiesReceived": 0
+      }
+    },
+    {
+      "firstName": "Gytis",
+      "lastName": "Sarka",
+      "role": "midfielder (RM)",
+      "birthDate": {
+        "$date": "2003-12-24T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 12,
+        "penaltiesReceived": 5
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Jankauskas",
+      "role": "midfielder (LM)",
+      "birthDate": {
+        "$date": "2003-06-20T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 20,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Jonas",
+      "lastName": "Valinskas",
+      "role": "forward (ST)",
+      "birthDate": {
+        "$date": "1997-09-10T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 26,
+        "penaltiesReceived": 5
+      }
+    },
+    {
+      "firstName": "Justas",
+      "lastName": "Povilaitis",
+      "role": "reserve (defender)",
+      "birthDate": {
+        "$date": "1997-09-05T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 3,
+        "penaltiesReceived": 3
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Valiukas",
+      "role": "reserve (midfielder)",
+      "birthDate": {
+        "$date": "2003-12-06T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 9,
+        "penaltiesReceived": 4
+      }
+    }
+  ]
+},
+{
+  "_id": {
+    "$oid": "3e015d0c80b2ac8a045663d5"
+  },
+  "sport": "basketball",
+  "teamName": "Siauliai Suns",
+  "rating": 1851,
+  "coaches": [
+    {
+      "firstName": "Rimantas",
+      "lastName": "Kairys",
+      "experienceYears": 10,
+      "coachType": "head coach"
+    },
+    {
+      "firstName": "Lukas",
+      "lastName": "Gedgaudas",
+      "experienceYears": 3,
+      "coachType": "assistant coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Paulius",
+      "lastName": "Stonys",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "1999-12-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1380,
+        "penaltiesReceived": 56
+      }
+    },
+    {
+      "firstName": "Domas",
+      "lastName": "Sabonis",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "2000-02-11T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1233,
+        "penaltiesReceived": 46
+      }
+    },
+    {
+      "firstName": "Jonas",
+      "lastName": "Valiukas",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "2001-01-22T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2422,
+        "penaltiesReceived": 64
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Sabonis",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "1996-09-12T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2750,
+        "penaltiesReceived": 68
+      }
+    },
+    {
+      "firstName": "Dovydas",
+      "lastName": "Vilkas",
+      "role": "center",
+      "birthDate": {
+        "$date": "2005-01-07T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1293,
+        "penaltiesReceived": 75
+      }
+    },
+    {
+      "firstName": "Tomas",
+      "lastName": "Zalkauskas",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "2000-12-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 697,
+        "penaltiesReceived": 8
+      }
+    },
+    {
+      "firstName": "Dovydas",
+      "lastName": "Grabauskas",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "2005-04-23T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 848,
+        "penaltiesReceived": 44
+      }
+    },
+    {
+      "firstName": "Domas",
+      "lastName": "Petrauskas",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "2001-07-03T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1120,
+        "penaltiesReceived": 19
+      }
+    },
+    {
+      "firstName": "Martynas",
+      "lastName": "Kazlauskas",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "2003-03-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1395,
+        "penaltiesReceived": 70
+      }
+    },
+    {
+      "firstName": "Rytis",
+      "lastName": "Petraitis",
+      "role": "center",
+      "birthDate": {
+        "$date": "1999-08-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1198,
+        "penaltiesReceived": 63
+      }
+    },
+    {
+      "firstName": "Domas",
+      "lastName": "Stankevicius",
+      "role": "wing (SF/SG)",
+      "birthDate": {
+        "$date": "1999-04-20T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2281,
+        "penaltiesReceived": 22
+      }
+    },
+    {
+      "firstName": "Rimantas",
+      "lastName": "Petraitis",
+      "role": "big (PF/C)",
+      "birthDate": {
+        "$date": "2005-07-11T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2279,
+        "penaltiesReceived": 39
+      }
+    },
+    {
+      "firstName": "Marius",
+      "lastName": "Zalkauskas",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "2004-05-27T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 350,
+        "penaltiesReceived": 18
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Kairys",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "1995-08-18T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 297,
+        "penaltiesReceived": 11
+      }
+    }
+  ]
+},
+{
+  "_id": {
+    "$oid": "83b0133727334ebcf2cfb088"
+  },
+  "sport": "basketball",
+  "teamName": "Panevezys Titans",
+  "rating": 1794,
+  "coaches": [
+    {
+      "firstName": "Martynas",
+      "lastName": "Vilkas",
+      "experienceYears": 9,
+      "coachType": "head coach"
+    }
+  ],
+  "players": [
+    {
+      "firstName": "Edvinas",
+      "lastName": "Zalkauskas",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "2002-10-02T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2697,
+        "penaltiesReceived": 17
+      }
+    },
+    {
+      "firstName": "Karolis",
+      "lastName": "Bieliauskas",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "1996-05-22T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 532,
+        "penaltiesReceived": 25
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Grigonis",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "2001-02-06T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 210,
+        "penaltiesReceived": 57
+      }
+    },
+    {
+      "firstName": "Martynas",
+      "lastName": "Povilaitis",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "2002-08-10T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 333,
+        "penaltiesReceived": 34
+      }
+    },
+    {
+      "firstName": "Tadas",
+      "lastName": "Povilaitis",
+      "role": "center",
+      "birthDate": {
+        "$date": "1997-12-28T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2059,
+        "penaltiesReceived": 14
+      }
+    },
+    {
+      "firstName": "Edgaras",
+      "lastName": "Urbonas",
+      "role": "point guard",
+      "birthDate": {
+        "$date": "1997-11-19T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2908,
+        "penaltiesReceived": 30
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Kazlauskas",
+      "role": "shooting guard",
+      "birthDate": {
+        "$date": "2001-04-21T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 810,
+        "penaltiesReceived": 39
+      }
+    },
+    {
+      "firstName": "Tomas",
+      "lastName": "Jankauskas",
+      "role": "small forward",
+      "birthDate": {
+        "$date": "1993-03-26T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1459,
+        "penaltiesReceived": 77
+      }
+    },
+    {
+      "firstName": "Tadas",
+      "lastName": "Vilkas",
+      "role": "power forward",
+      "birthDate": {
+        "$date": "1994-08-23T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 1445,
+        "penaltiesReceived": 56
+      }
+    },
+    {
+      "firstName": "Rokas",
+      "lastName": "Sadauskas",
+      "role": "center",
+      "birthDate": {
+        "$date": "2001-08-15T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 529,
+        "penaltiesReceived": 10
+      }
+    },
+    {
+      "firstName": "Edvinas",
+      "lastName": "Valinskas",
+      "role": "wing (SF/SG)",
+      "birthDate": {
+        "$date": "1998-10-09T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 305,
+        "penaltiesReceived": 16
+      }
+    },
+    {
+      "firstName": "Mantas",
+      "lastName": "Gedgaudas",
+      "role": "big (PF/C)",
+      "birthDate": {
+        "$date": "2002-10-01T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 2953,
+        "penaltiesReceived": 39
+      }
+    },
+    {
+      "firstName": "Benitas",
+      "lastName": "Sabonis",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "2005-03-16T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 315,
+        "penaltiesReceived": 20
+      }
+    },
+    {
+      "firstName": "Martynas",
+      "lastName": "Petraitis",
+      "role": "reserve",
+      "birthDate": {
+        "$date": "1995-10-14T00:00:00.000Z"
+      },
+      "achievements": {
+        "careerGoalsOrPoints": 375,
+        "penaltiesReceived": 26
+      }
+    }
+  ]
+}]

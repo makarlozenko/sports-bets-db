@@ -1,0 +1,210 @@
+[{
+  "_id": {
+    "$oid": "68e7b61ff2656d90ad339dd5"
+  },
+  "matchType": "league",
+  "sport": "football",
+  "date": "2025-08-29",
+  "odds": {
+    "$numberDecimal": "2.00"
+  },
+  "team1": {
+    "name": "Vilnius FC",
+    "result": {
+      "status": "lost",
+      "goalsFor": 0,
+      "goalsAgainst": 1,
+      "cards": {
+        "red": 0,
+        "yellow": 0
+      }
+    }
+  },
+  "team2": {
+    "name": "Panevezys Town",
+    "result": {
+      "status": "won",
+      "goalsFor": 1,
+      "goalsAgainst": 0,
+      "cards": {
+        "red": 2,
+        "yellow": 0
+      }
+    }
+  }
+},
+{
+  "_id": {
+    "$oid": "68e7b61ff2656d90ad339dd3"
+  },
+  "matchType": "league",
+  "sport": "football",
+  "date": "2025-08-15",
+  "odds": {
+    "$numberDecimal": "2.00"
+  },
+  "team1": {
+    "name": "Vilnius FC",
+    "result": {
+      "status": "draw",
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "cards": {
+        "red": 1,
+        "yellow": 1
+      }
+    }
+  },
+  "team2": {
+    "name": "Kaunas United",
+    "result": {
+      "status": "draw",
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "cards": {
+        "red": 1,
+        "yellow": 0
+      }
+    }
+  }
+},
+{
+  "_id": {
+    "$oid": "68e7b61ff2656d90ad339de8"
+  },
+  "matchType": "league",
+  "sport": "basketball",
+  "date": "2025-09-29",
+  "odds": {
+    "$numberDecimal": "2.00"
+  },
+  "team1": {
+    "name": "Vilnius Wolves",
+    "result": {
+      "status": "won",
+      "pointsBreakdown": {
+        "one": 18,
+        "two": 75,
+        "three": 14
+      },
+      "fouls": 22
+    }
+  },
+  "team2": {
+    "name": "Klaipeda Mariners",
+    "result": {
+      "status": "lost",
+      "pointsBreakdown": {
+        "one": 18,
+        "two": 12,
+        "three": 14
+      },
+      "fouls": null
+    }
+  }
+},
+{
+  "_id": {
+    "$oid": "68e7b61ff2656d90ad339de7"
+  },
+  "matchType": "league",
+  "sport": "basketball",
+  "date": "2025-09-01",
+  "odds": {
+    "$numberDecimal": "2.00"
+  },
+  "team1": {
+    "name": "Vilnius Wolves",
+    "result": {
+      "status": "lost",
+      "pointsBreakdown": {
+        "one": 12,
+        "two": 58,
+        "three": 7
+      },
+      "fouls": 24
+    }
+  },
+  "team2": {
+    "name": "Kaunas Green",
+    "result": {
+      "status": "won",
+      "pointsBreakdown": {
+        "one": 20,
+        "two": 60,
+        "three": 7
+      },
+      "fouls": 31
+    }
+  }
+},
+{
+  "_id": {
+    "$oid": "68e7b61ff2656d90ad339dd4"
+  },
+  "matchType": "league",
+  "sport": "football",
+  "date": "2025-08-22",
+  "odds": {
+    "$numberDecimal": "2.00"
+  },
+  "team1": {
+    "name": "Vilnius FC",
+    "result": {
+      "status": "lost",
+      "goalsFor": 0,
+      "goalsAgainst": 4,
+      "cards": {
+        "red": 0,
+        "yellow": 3
+      }
+    }
+  },
+  "team2": {
+    "name": "Klaipeda City",
+    "result": {
+      "status": "won",
+      "goalsFor": 4,
+      "goalsAgainst": 0,
+      "cards": {
+        "red": 0,
+        "yellow": 1
+      }
+    }
+  }
+},
+{
+  "_id": {
+    "$oid": "68e7b61ff2656d90ad339de9"
+  },
+  "matchType": "league",
+  "sport": "basketball",
+  "date": "2025-10-06",
+  "odds": {
+    "$numberDecimal": "2.00"
+  },
+  "team1": {
+    "name": "Vilnius Wolves",
+    "result": {
+      "status": "won",
+      "pointsBreakdown": {
+        "one": 18,
+        "two": 75,
+        "three": 14
+      },
+      "fouls": 13
+    }
+  },
+  "team2": {
+    "name": "Panevezys Titans",
+    "result": {
+      "status": "lost",
+      "pointsBreakdown": {
+        "one": 18,
+        "two": 21,
+        "three": 14
+      },
+      "fouls": 3
+    }
+  }
+}]
