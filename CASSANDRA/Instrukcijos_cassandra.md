@@ -25,7 +25,7 @@ docker start cassandra
 
 ### Įkelti `.cql` failą
 ```bash
-docker cp CASSANDRA/create_keyspace.cql cassandra:/create_keyspace.cq
+docker cp CASSANDRA/create_keyspace.cql cassandra:/create_keyspace.cql
 ```
 
 ### Paleisti `.cql` failą
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS bets_by_user (
   PRIMARY KEY ((user_id), event_date, bet_created_at, bet_id)
 ) WITH CLUSTERING ORDER BY (event_date DESC, bet_created_at DESC, bet_id ASC);
 ```
-
+ 
 #### Užpildymas
 ```sql
 COPY bets (
