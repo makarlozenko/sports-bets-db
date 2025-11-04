@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS sportsbook.bets_by_day (
+CREATE TABLE IF NOT EXISTS sportsbook.bets_by_user_day (
     bet_id text,
     user_id text,
     user_email text,
@@ -13,5 +13,5 @@ CREATE TABLE IF NOT EXISTS sportsbook.bets_by_day (
     stake decimal,
     bet_created_at timestamp,
     status text,
-    PRIMARY KEY (event_date, bet_created_at, stake)
+    PRIMARY KEY ((event_date, user_email), bet_created_at, stake)
 )   WITH CLUSTERING ORDER BY (bet_created_at DESC, stake DESC);

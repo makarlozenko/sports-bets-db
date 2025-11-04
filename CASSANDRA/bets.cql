@@ -1,4 +1,3 @@
-
 BEGIN BATCH
 INSERT INTO sportsbook.bets (
   bet_id, user_id, user_email, event_team1, event_team2, event_type, event_date,
