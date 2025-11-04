@@ -91,6 +91,5 @@ CREATE TABLE IF NOT EXISTS sportsbook.bets (
   bet_score_team2 int,
   stake decimal,
   bet_created_at timestamp,
-  status text,
-  created_at timestamp
+  status text
 );
