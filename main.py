@@ -1,5 +1,8 @@
 # main.py
 import os
+import gevent.monkey
+gevent.monkey.patch_all()
+
 import certifi
 from datetime import datetime
 from flask import Flask, request, jsonify
@@ -26,6 +29,9 @@ register_users_routes(app, db)
 
 from cart import register_cart_routes
 register_cart_routes(app, db)
+
+from chat import register_chat_routes
+register_chat_routes(app, db)
 
 if __name__ == "__main__":
     # paleidimas lokaliai
