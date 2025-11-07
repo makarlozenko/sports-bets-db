@@ -11,7 +11,7 @@ import uuid
 
 def connect_to_cassandra():
     """Try to connect to Cassandra container."""
-    print("🔌 Connecting to Cassandra container...")
+    print("Connecting to Cassandra container...")
     try:
         cluster = Cluster(['localhost'])
         session = cluster.connect('sportsbook')
