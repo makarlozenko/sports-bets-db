@@ -1,4 +1,4 @@
-# 💬 Cassandra Chat Functionality (Sportsbook Project)
+#  Cassandra Chat Functionality (Sportsbook Project)
 
 This project implements **chat functionality** on top of the existing `sportsbook` Cassandra database.  
 It allows users to send messages related to sports matches, stores them in two separate tables,  
@@ -6,7 +6,7 @@ and automatically expires old messages after 2 days (using TTL).
 
 ---
 
-## 🚀 Features
+##  Features
 
 - **Two-table message storage design:**
   - `chat_messages_by_room` → messages grouped by match (`match_id`).
@@ -32,7 +32,7 @@ and automatically expires old messages after 2 days (using TTL).
 
 ---
 
-## 🧱 Database Schema (excerpt)
+##  Database Schema (excerpt)
 
 ```sql
 CREATE TABLE IF NOT EXISTS chat_messages_by_room (
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS chat_messages_by_user_day (
 
 ---
 
-## 🧩 How It Works
+##  How It Works
 
 1. **Add a message:**
    - The system checks if the user and match exist.
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS chat_messages_by_user_day (
 
 ---
 
-## 🧪 Demo Script (`chat_demo.py`)
+##  Demo Script (`chat_demo.py`)
 
 Run a full demonstration in terminal:
 
@@ -94,26 +94,26 @@ This will:
 
 ---
 
-### 🖥️ Example Output
+###  Example Output
 
 ```
-🔌 Connecting to Cassandra container...
-✅ Connected successfully to keyspace 'sportsbook'
+ Connecting to Cassandra container...
+ Connected successfully to keyspace 'sportsbook'
 
 === Step 2: Adding a valid chat message ===
-✅ Message added successfully (TTL = 2 days)
+ Message added successfully (TTL = 2 days)
 
 === Step 3: Adding message from non-existing user ===
-❌ User fake_user_000 not found.
+ User fake_user_000 not found.
 
 === Step 4: Show current chat table content ===
-📜 Current chat_messages_by_room content:
+ Current chat_messages_by_room content:
   Match 68e7b61ff2656d90ad339de9 | arina.ti@outlook.com | 'Vilnius Wolves are playing great today!' | TTL left: 172799s
 ```
 
 ---
 
-## 🧰 Setup Instructions
+## Setup Instructions
 
 1. **Run Cassandra container:**
    ```bash
@@ -139,20 +139,3 @@ This will:
    ```
 
 ---
-
-## ✅ Project Goals Achieved
-
-| Requirement | Status |
-|--------------|----------|
-| Messages written to two tables | ✅ Done |
-| Reading by match and by user/day | ✅ Done |
-| Automatic expiration (TTL) | ✅ Done |
-| No ALLOW FILTERING | ✅ Done |
-| Validation of user/match | ✅ Done |
-| Testing and demonstration | ✅ Done |
-
----
-
-## 🏁 Author
-**Makar**  
-Cassandra Chat Functionality – Sports Bets DB Project (University Assignment)
