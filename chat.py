@@ -148,18 +148,6 @@ def register_chat_routes(app, db):
             "messages": messages
         })
 
-    # UPDATE (not supported)
-    @app.patch("/chat/messages/<message_id>")
-    def update_message(message_id):
-        data = request.get_json(silent=True) or {}
-        new_text = data.get("message")
-        if not new_text:
-            return jsonify({"error": "New message text required"}), 400
-
-        return jsonify({
-            "message": "Direct updates are not supported in Cassandra (immutable records)."
-        }), 400
-
     # DELETE (logical: rely on TTL)
     @app.delete("/chat/messages/<message_id>")
     def delete_message(message_id):
