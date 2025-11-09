@@ -121,7 +121,17 @@ The main chat logic is defined in `chat.py`.
 | `GET` | `/chat/debug/mongo` | MongoDB stats (users & matches count) |
 
 TTL ensures all messages expire automatically after 48 hours.
+For `POST`:
+Request body
 
+```json
+{
+  "matchId": "68e7b61ff2656d90ad339de9",
+  "userId": "68f27893e6f79eef77a5c165",
+  "userEmail": "arina.ti@outlook.com",
+  "message": "Vilnius Wolves are unstoppable tonight!"
+}
+```
 ---
 
 ## 6. Cassandra Test Script
