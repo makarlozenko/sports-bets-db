@@ -65,7 +65,6 @@ def register_chat_routes(app, db):
             USING TTL %s
         """, (user_id, day, message_id, match_id, message_text, sent_at, ttl_seconds))
 
-        # 3) by user (no day) — для быстрого чтения без ALLOW FILTERING
         session.execute("""
             INSERT INTO chat_messages_by_user (user_id, message_id, match_id, message, sent_at)
             VALUES (%s, %s, %s, %s, %s)
@@ -125,12 +124,10 @@ def register_chat_routes(app, db):
         Example: /chat/user/68f27893e6f79eef77a5c165/day/2025-11-08
         """
         try:
-            # Преобразуем строку в объект date
             day = datetime.strptime(day_str, "%Y-%m-%d").date()
         except ValueError:
             return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
-        # Запрос по PRIMARY KEY ((user_id, day), message_id)
         rows = session.execute("""
             SELECT * FROM chat_messages_by_user_day WHERE user_id = %s AND day = %s
         """, (user_id, day))
