@@ -4,14 +4,16 @@ from datetime import datetime, date
 import uuid
 from bson import ObjectId
 
+
 def register_chat_routes(app, db):
     MATCHES = db.Matches   # collection
     USERS = db.User
 
-    # ===== Cassandra connection =====
+    # Cassandra connection
     cluster = Cluster(['localhost'])
     session = cluster.connect('sportsbook')
 
+    # Mongo validation helpers
     def user_exists(user_id):
         try:
             oid = ObjectId(user_id)
@@ -26,7 +28,7 @@ def register_chat_routes(app, db):
             return False
         return MATCHES.find_one({"_id": oid}) is not None
 
-    # ---- CREATE ----
+    # CREATE
     @app.post("/chat/messages")
     def create_message():
         data = request.get_json(silent=True) or {}
@@ -38,7 +40,7 @@ def register_chat_routes(app, db):
         if not all([match_id, user_id, user_email, message_text]):
             return jsonify({"error": "matchId, userId, userEmail, and message are required"}), 400
 
-        # Check user and match existent
+        # Check user and match existence in Mongo
         if not match_exists(match_id):
             return jsonify({"error": f"Match {match_id} not found in Mongo"}), 404
         if not user_exists(user_id):
@@ -49,18 +51,26 @@ def register_chat_routes(app, db):
         day = date.today()
         ttl_seconds = 172800  # 2 days
 
-        # Input in Cassandra
+        # 1) by room
         session.execute("""
             INSERT INTO chat_messages_by_room (match_id, message_id, user_id, user_email, message, sent_at)
             VALUES (%s, %s, %s, %s, %s, %s)
             USING TTL %s
         """, (match_id, message_id, user_id, user_email, message_text, sent_at, ttl_seconds))
 
+        # 2) by user and day
         session.execute("""
             INSERT INTO chat_messages_by_user_day (user_id, day, message_id, match_id, message, sent_at)
             VALUES (%s, %s, %s, %s, %s, %s)
             USING TTL %s
         """, (user_id, day, message_id, match_id, message_text, sent_at, ttl_seconds))
+
+        # 3) by user (no day) — для быстрого чтения без ALLOW FILTERING
+        session.execute("""
+            INSERT INTO chat_messages_by_user (user_id, message_id, match_id, message, sent_at)
+            VALUES (%s, %s, %s, %s, %s)
+            USING TTL %s
+        """, (user_id, message_id, match_id, message_text, sent_at, ttl_seconds))
 
         return jsonify({
             "message": "Message created",
@@ -75,10 +85,14 @@ def register_chat_routes(app, db):
             "users_count": USERS.count_documents({}),
             "matches_count": MATCHES.count_documents({})
         }
-    # ---- READ ----
+
+    # READ: messages by match
     @app.get("/chat/match/<match_id>")
     def get_messages_by_match(match_id):
-        rows = session.execute("SELECT * FROM chat_messages_by_room WHERE match_id = %s", [match_id])
+        rows = session.execute(
+            "SELECT * FROM chat_messages_by_room WHERE match_id = %s",
+            [match_id]
+        )
         messages = [{
             "messageId": str(r.message_id),
             "userId": r.user_id,
@@ -90,20 +104,51 @@ def register_chat_routes(app, db):
 
     @app.get("/chat/user/<user_id>")
     def get_messages_by_user(user_id):
-        rows = session.execute("""
-            SELECT * FROM chat_messages_by_user_day
-            WHERE user_id = %s ALLOW FILTERING
-        """, [user_id])
-        today = date.today()
+        rows = session.execute(
+            "SELECT * FROM chat_messages_by_user WHERE user_id = %s",
+            [user_id]
+        )
         messages = [{
             "messageId": str(r.message_id),
             "matchId": r.match_id,
             "message": r.message,
             "sentAt": r.sent_at.isoformat()
-        } for r in rows if r.day == today]
+        } for r in rows]
         return jsonify({"userId": user_id, "messages": messages})
 
-    # ---- UPDATE ----
+    from datetime import datetime
+
+    @app.get("/chat/user/<user_id>/day/<day_str>")
+    def get_messages_by_user_day(user_id, day_str):
+        """
+        Get all chat messages for a specific user on a specific day.
+        Example: /chat/user/68f27893e6f79eef77a5c165/day/2025-11-08
+        """
+        try:
+            # Преобразуем строку в объект date
+            day = datetime.strptime(day_str, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
+        # Запрос по PRIMARY KEY ((user_id, day), message_id)
+        rows = session.execute("""
+            SELECT * FROM chat_messages_by_user_day WHERE user_id = %s AND day = %s
+        """, (user_id, day))
+
+        messages = [{
+            "messageId": str(r.message_id),
+            "matchId": r.match_id,
+            "message": r.message,
+            "sentAt": r.sent_at.isoformat()
+        } for r in rows]
+
+        return jsonify({
+            "userId": user_id,
+            "day": day_str,
+            "messages": messages
+        })
+
+    # UPDATE (not supported)
     @app.patch("/chat/messages/<message_id>")
     def update_message(message_id):
         data = request.get_json(silent=True) or {}
@@ -111,18 +156,23 @@ def register_chat_routes(app, db):
         if not new_text:
             return jsonify({"error": "New message text required"}), 400
 
+        return jsonify({
+            "message": "Direct updates are not supported in Cassandra (immutable records)."
+        }), 400
 
-        return jsonify({"message": "Direct updates are not supported in Cassandra (immutable records)."}), 400
-
-    # ---- DELETE ----
+    # DELETE (logical: rely on TTL)
     @app.delete("/chat/messages/<message_id>")
     def delete_message(message_id):
-        return jsonify({"message": "Delete by message_id not supported; use TTL auto-expiry (2 days)."}), 400
+        return jsonify({
+            "message": "Delete by message_id not supported; use TTL auto-expiry (2 days)."
+        }), 400
 
+    # CLEAR test data
     @app.delete("/chat/clear")
     def clear_chat_data():
         session.execute("TRUNCATE chat_messages_by_room;")
         session.execute("TRUNCATE chat_messages_by_user_day;")
+        session.execute("TRUNCATE chat_messages_by_user;")
         return jsonify({"message": "All chat messages deleted"}), 200
 
     @app.get("/chat/health")

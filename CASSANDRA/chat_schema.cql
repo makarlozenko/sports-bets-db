@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS chat_messages_by_room (
     message text,
     sent_at timestamp,
     PRIMARY KEY (match_id, message_id)
-) WITH CLUSTERING ORDER BY (message_id ASC) AND default_time_to_live = 172800;
+) WITH CLUSTERING ORDER BY (message_id ASC)
+  AND default_time_to_live = 172800;
 
 CREATE TABLE IF NOT EXISTS chat_messages_by_user_day (
     user_id text,
@@ -18,4 +19,16 @@ CREATE TABLE IF NOT EXISTS chat_messages_by_user_day (
     message text,
     sent_at timestamp,
     PRIMARY KEY ((user_id, day), message_id)
-) WITH CLUSTERING ORDER BY (message_id ASC) AND default_time_to_live = 172800;
+) WITH CLUSTERING ORDER BY (message_id ASC)
+  AND default_time_to_live = 172800;
+
+
+CREATE TABLE IF NOT EXISTS chat_messages_by_user (
+    user_id text,
+    message_id uuid,
+    match_id text,
+    message text,
+    sent_at timestamp,
+    PRIMARY KEY (user_id, message_id)
+) WITH CLUSTERING ORDER BY (message_id ASC)
+  AND default_time_to_live = 172800;
