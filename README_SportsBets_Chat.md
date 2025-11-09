@@ -188,9 +188,3 @@ User fake_user_001 not found.
 
 ---
 
-## 9. Author
-
-Developed for the **Sports Bets Database** project.  
-Designed to demonstrate integration between MongoDB, Cassandra, and Flask REST APIs.
-
----
