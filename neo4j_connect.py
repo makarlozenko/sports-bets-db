@@ -3,7 +3,6 @@ from datetime import datetime
 from flask import Flask, jsonify
 
 # ---------- Neo4j driver setup ----------
-
 URI = "neo4j+s://37b79b6d.databases.neo4j.io"
 USER = "neo4j"
 PASSWORD = "qCyhqY1TKvwPEKrzECH7N8u-jBJOkH2lkvXQFLQT8c8"
@@ -126,50 +125,45 @@ def wipe_database():
 
 app = Flask(__name__)
 
+def neo4j(app, db):
+    @app.route("/neo4j/health", methods=["GET"])
+    def neo4j_health():
+        """Simple HTTP endpoint to verify Neo4j integration."""
+        try:
+            with driver.session(database="neo4j") as session:
+                result = session.run("RETURN 'ok' AS status")
+                record = result.single()
+                status = record["status"] if record else None
 
-@app.route("/neo4j/health", methods=["GET"])
-def neo4j_health():
-    """Simple HTTP endpoint to verify Neo4j integration."""
-    try:
-        with driver.session(database="neo4j") as session:
-            result = session.run("RETURN 'ok' AS status")
-            record = result.single()
-            status = record["status"] if record else None
-
-        return jsonify({
-            "neo4j_status": "up" if status == "ok" else "unknown",
-            "query_result": status,
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "neo4j_status": "down",
-            "error": str(e),
-        }), 500
+            return jsonify({
+                "neo4j_status": "up" if status == "ok" else "unknown",
+                "query_result": status,
+            }), 200
+        except Exception as e:
+            return jsonify({
+                "neo4j_status": "down",
+                "error": str(e),
+            }), 500
 
 
-@app.route("/neo4j/seed", methods=["POST", "GET"])
-def neo4j_seed():
-    """HTTP endpoint to (re)seed the fixed example graph."""
-    try:
-        seed_graph()
-        return jsonify({"status": "ok", "message": "Graph seeded"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+    @app.route("/neo4j/seed", methods=["POST", "GET"])
+    def neo4j_seed():
+        """HTTP endpoint to (re)seed the fixed example graph."""
+        try:
+            seed_graph()
+            return jsonify({"status": "ok", "message": "Graph seeded"}), 200
+        except Exception as e:
+            return jsonify({"status": "error", "error": str(e)}), 500
 
-@app.route("/neo4j/delete-all", methods=["POST"])
-def neo4j_delete_all():
-    """
-    Delete all nodes and relationships from Neo4j.
-    WARNING: this wipes the whole graph.
-    """
-    try:
-        wipe_database()
-        return jsonify({"status": "ok", "message": "All data deleted"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+    @app.route("/neo4j/delete-all", methods=["DELETE"])
+    def neo4j_delete_all():
+        """
+        Delete all nodes and relationships from Neo4j.
+        WARNING: this wipes the whole graph.
+        """
+        try:
+            wipe_database()
+            return jsonify({"status": "ok", "message": "All data deleted"}), 200
+        except Exception as e:
+            return jsonify({"status": "error", "error": str(e)}), 500
 
-if __name__ == "__main__":
-    # test_connection()  # optional
-    # seed_graph()       # optional direct seeding
-
-    app.run(host="0.0.0.0", port=8000, debug=True)
