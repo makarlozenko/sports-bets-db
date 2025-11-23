@@ -145,13 +145,6 @@ def register_chat_routes(app, db):
             "messages": messages
         })
 
-    # DELETE (logical: rely on TTL)
-    @app.delete("/chat/messages/<message_id>")
-    def delete_message(message_id):
-        return jsonify({
-            "message": "Delete by message_id not supported; use TTL auto-expiry (2 days)."
-        }), 400
-
     # CLEAR test data
     @app.delete("/chat/clear")
     def clear_chat_data():
