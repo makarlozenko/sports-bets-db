@@ -9,7 +9,6 @@ PASSWORD = "qCyhqY1TKvwPEKrzECH7N8u-jBJOkH2lkvXQFLQT8c8"
 
 driver = GraphDatabase.driver(URI, auth=(USER, PASSWORD))
 def test_connection():
-    """Simple sanity check used by CLI / debug."""
     with driver.session(database="neo4j") as session:
         result = session.run("RETURN 'Hello from Neo4j' AS msg")
         print(result.single()["msg"])
@@ -17,7 +16,7 @@ def test_connection():
 
 def seed_graph():
     """
-    Create a small, feature-specific graph with fixed data:
+    Creating a small, feature-specific graph with fixed data:
 
       Users:  Arina, Edvinas
       Teams:  Vilnius Wolves, Kaunas Kings
@@ -159,7 +158,6 @@ def neo4j(app, db):
     def neo4j_delete_all():
         """
         Delete all nodes and relationships from Neo4j.
-        WARNING: this wipes the whole graph.
         """
         try:
             wipe_database()
