@@ -538,6 +538,14 @@ def register_bets_routes(app, db):
         except Exception as e:
             return jsonify({"message": "Failed to add bet.", "error": str(e)}), 400
 
+    def delete_bet_relationships(bet_id):
+        """Delete the Bet node and all its relationships from Neo4j."""
+        with driver.session(database="neo4j") as session:
+            session.run(
+                "MATCH (b:Bet {id: $bet_id}) DETACH DELETE b",
+                {"bet_id": str(bet_id)}
+            )
+
     # ---------- DELETE ----------
     @app.delete("/bets/<id>")
     def delete_bet(id):
@@ -554,6 +562,8 @@ def register_bets_routes(app, db):
         res = BETS.delete_one({"_id": oid})
         if not res.deleted_count:
             return jsonify({"error": "Not found"}), 404
+
+        delete_bet_relationships(str(oid))
 
         invalidate_pattern("bets:list:*")
         invalidate_pattern(f"bets_by_email:{user_email}:*")
