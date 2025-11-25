@@ -540,7 +540,7 @@ def register_bets_routes(app, db):
 
     def delete_bet_relationships(bet_id):
         """Delete the Bet node and all its relationships from Neo4j."""
-        with driver.session(database="neo4j") as session:
+        with neo4j_driver.session(database="neo4j") as session:
             session.run(
                 "MATCH (b:Bet {id: $bet_id}) DETACH DELETE b",
                 {"bet_id": str(bet_id)}
