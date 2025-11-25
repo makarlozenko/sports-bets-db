@@ -122,8 +122,6 @@ def wipe_database():
 
 # ---------- Flask app & endpoints ----------
 
-app = Flask(__name__)
-
 def neo4j(app, db):
     @app.route("/neo4j/health", methods=["GET"])
     def neo4j_health():

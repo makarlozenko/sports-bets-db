@@ -36,6 +36,9 @@ register_chat_routes(app, db)
 from neo4j_connect import neo4j
 neo4j(app, db)
 
+from neo4j_endpoints import register_neo4j_routes
+register_neo4j_routes(app)
+
 if __name__ == "__main__":
     # paleidimas lokaliai
     app.run(debug=False, threaded=True, host="127.0.0.1", port=5000)

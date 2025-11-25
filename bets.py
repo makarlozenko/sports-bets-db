@@ -11,7 +11,7 @@ import redis
 import time
 
 from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
-
+from neo4j_connect import driver as neo4j_driver
 
 YYYY_MM_DD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 VALID_CHOICES = {"winner", "score"}
@@ -297,6 +297,57 @@ def register_bets_routes(app, db):
     # ---------- CREATE ----------
     VALID_STATUSES = {"pending", "won", "lost"}
 
+
+    #Bet relationships creation function for neo4j database
+    def create_bet_relationships(user_email, bet_id, match_id, match_sport=None, team_id=None, team_name=None):
+        """Create Neo4j nodes and relationships for a newly placed bet."""
+        with neo4j_driver.session(database="neo4j") as session:
+            # --- Ensure User node exists ---
+            session.run(
+                "MERGE (u:User {id: $user_email}) "
+                "ON CREATE SET u.createdAt = datetime()",
+                {"user_email": user_email}
+            )
+
+            # --- Ensure Bet node exists ---
+            session.run(
+                "MERGE (b:Bet {id: $bet_id})",
+                {"bet_id": str(bet_id)}
+            )
+
+            # --- Link User -> Bet ---
+            session.run(
+                "MATCH (u:User {id: $user_email}), (b:Bet {id: $bet_id}) "
+                "MERGE (u)-[:PLACED]->(b)",
+                {"user_email": user_email, "bet_id": str(bet_id)}
+            )
+
+            # --- Ensure Match node exists and link Bet -> Match ---
+            if match_id:
+                session.run(
+                    "MERGE (m:Match {id: $match_id}) "
+                    "ON CREATE SET m.sport = $match_sport, m.createdAt = datetime()",
+                    {"match_id": match_id, "match_sport": match_sport}
+                )
+                session.run(
+                    "MATCH (b:Bet {id: $bet_id}), (m:Match {id: $match_id}) "
+                    "MERGE (b)-[:ON_MATCH]->(m)",
+                    {"bet_id": str(bet_id), "match_id": match_id}
+                )
+
+            # --- Ensure Team node exists and link Bet -> Team ---
+            if team_id:
+                session.run(
+                    "MERGE (t:Team {id: $team_id}) "
+                    "ON CREATE SET t.name = $team_name, t.createdAt = datetime()",
+                    {"team_id": team_id, "team_name": team_name}
+                )
+                session.run(
+                    "MATCH (b:Bet {id: $bet_id}), (t:Team {id: $team_id}) "
+                    "MERGE (b)-[:ON_TEAM]->(t)",
+                    {"bet_id": str(bet_id), "team_id": team_id}
+                )
+
     @app.post("/bets")
     def create_bet():
         try:
@@ -459,6 +510,20 @@ def register_bets_routes(app, db):
                     # kompensacija: grąžinam pinigus jei įrašas nepavyko
                     USERS.update_one(selector, {"$inc": {"balance": stake_dec128}})
                     raise insert_err
+
+                match_id = str(match_doc["_id"])
+                match_sport = match_doc.get("sport")
+                team_id = pick_team if choice == "winner" else None
+                team_name = pick_team if choice == "winner" else None
+
+                create_bet_relationships(
+                    user_email=user_email,
+                    bet_id=str(res.inserted_id),
+                    match_id=match_id,
+                    match_sport=match_sport,
+                    team_id=team_id,
+                    team_name=team_name
+                )
 
                 invalidate_pattern("bets:list:*")
                 invalidate_pattern(f"bets_by_email:{user_email}:*")
