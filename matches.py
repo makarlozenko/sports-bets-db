@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 from bson import ObjectId
 from datetime import datetime
 from dateutil import parser
@@ -6,6 +6,7 @@ from bson.decimal128 import Decimal128
 from decimal import Decimal, ROUND_HALF_UP
 
 from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
+from neo4j_connect import driver as neo4j_driver
 
 def register_matches_routes(app, db):
     MATCHES = db.Matches   # collection
@@ -52,6 +53,63 @@ def register_matches_routes(app, db):
         if isinstance(x, Decimal):
             return str(x)
         return x
+
+    def sync_match_to_neo4j(match_doc):
+        """
+        Sukuria / atnaujina Neo4j:
+          - Team-nodes
+          - Match-nodes
+          - sarysius HOME_TEAM / AWAY_TEAM
+          - po tam tikro kiekio sukuria RIVAL_OF
+        """
+        match_id = str(match_doc["_id"])
+        sport = match_doc.get("sport")
+        date = match_doc.get("date")
+        team1 = (match_doc.get("team1") or {}).get("name")
+        team2 = (match_doc.get("team2") or {}).get("name")
+
+        if not team1 or not team2:
+            return
+
+        with neo4j_driver.session(database="neo4j") as session:
+            session.run("""
+                    MERGE (m:Match {id: $id})
+                    SET m.sport = $sport,
+                        m.startTime = $date,
+                        m.status = COALESCE(m.status, 'SCHEDULED')
+                """, {"id": match_id, "sport": sport, "date": date})
+
+            session.run("""
+                    MERGE (t1:Team {name: $team1})
+                    MERGE (t2:Team {name: $team2})
+                    WITH t1, t2, $id AS id
+                    MATCH (m:Match {id: id})
+                    MERGE (m)-[:HOME_TEAM]->(t1)
+                    MERGE (m)-[:AWAY_TEAM]->(t2)
+                """, {
+                "id": match_id,
+                "team1": team1,
+                "team2": team2,
+            })
+
+            # 2)Ziurim kiek zaidimu buvo tarp komandu Mongo
+            pair_filter = {
+                "$or": [
+                    {"team1.name": team1, "team2.name": team2},
+                    {"team1.name": team2, "team2.name": team1},
+                ]
+            }
+            games = MATCHES.count_documents(pair_filter)
+
+            # 3) Jei suzaide ≥ 3 раза, sukuriam RIVAL_OF
+            if games >= 3:
+                session.run(
+                    """
+                    MATCH (t1:Team {name: $t1}), (t2:Team {name: $t2})
+                    MERGE (t1)-[:RIVAL_OF]-(t2)
+                    """,
+                    {"t1": team1, "t2": team2}
+                )
 
     # ---------------------- CRUD ----------------------
     @app.get("/matches")
@@ -225,6 +283,12 @@ def register_matches_routes(app, db):
             # --- įrašymas ---
             res = MATCHES.insert_one(data)
             new_doc = MATCHES.find_one({"_id": res.inserted_id})
+
+
+            try:
+                sync_match_to_neo4j(new_doc)
+            except Exception as e:
+                current_app.logger.exception("Failed to sync match to Neo4j: %s", e)
 
             invalidate_pattern("matches:list:*")
             invalidate_pattern("matches_filter:*")

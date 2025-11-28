@@ -8,6 +8,7 @@ import json
 from flask import Response
 
 from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
+from neo4j_connect import driver as neo4j_driver
 
 def register_teams_routes(app, db):
     TEAMS = db.Team             # Collection
@@ -25,6 +26,17 @@ def register_teams_routes(app, db):
         if isinstance(d.get("_id"), ObjectId):
             d["_id"] = str(d["_id"])
         return d
+
+    def sync_team_to_neo4j(team_doc):
+        team_name = team_doc.get("teamName")
+        sport = team_doc.get("sport")
+        if not team_name:
+            return
+        with neo4j_driver.session(database="neo4j") as session:
+            session.run("""
+                MERGE (t:Team {name: $name})
+                SET t.sport = $sport
+            """, {"name": team_name, "sport": sport})
 
     @app.get("/health")
     def health():
@@ -82,6 +94,11 @@ def register_teams_routes(app, db):
             invalidate_pattern("teams:aggregations:*")
             invalidate_pattern("teams:filter:*")
             invalidate_pattern("teams:reorder:*")
+
+            try:
+                sync_team_to_neo4j(new_team)
+            except Exception as e:
+                print("Failed to sync team to Neo4j:", e)
 
             return jsonify({
                 "message": "Team added successfully",
