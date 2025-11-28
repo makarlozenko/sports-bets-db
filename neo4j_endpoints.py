@@ -45,8 +45,8 @@ def register_neo4j_rivalry_routes(app):
         # Use MongoDB via app.db
         mongo = current_app.db
 
-        team1_exists = mongo.teams.find_one({"teamName": t1})
-        team2_exists = mongo.teams.find_one({"teamName": t2})
+        team1_exists = mongo.Team.find_one({"teamName": t1})
+        team2_exists = mongo.Team.find_one({"teamName": t2})
 
         missing = []
         if not team1_exists:
@@ -59,6 +59,21 @@ def register_neo4j_rivalry_routes(app):
                 "error": "Some teams do not exist in MongoDB",
                 "missing_teams": missing
             }), 404
+
+        query_check = """
+        MATCH (a:Team {name: $t1})-[r:RIVAL_OF]-(b:Team {name: $t2})
+        RETURN r
+        """
+
+        with driver.session(database="neo4j") as session:
+            exists = session.run(query_check, t1=t1, t2=t2).single()
+
+        if exists:
+            return jsonify({
+                "message": "These teams are already rivals",
+                "team1": t1,
+                "team2": t2
+            }), 200
 
         query = """
         MERGE (a:Team {name: $t1})
@@ -80,7 +95,7 @@ def register_neo4j_rivalry_routes(app):
     def deep_rivals(team):
 
         mongo = current_app.db
-        team_exists = mongo.teams.find_one({"teamName": team})
+        team_exists = mongo.Team.find_one({"teamName": team})
 
         if not team_exists:
             return jsonify({
@@ -107,4 +122,48 @@ def register_neo4j_rivalry_routes(app):
             "team": team,
             "total_rivals": len(rivals),
             "rivals": rivals
+        }), 200
+    @app.delete("/neo4j/rivalry")
+    def delete_rivalry():
+        data = request.get_json(silent=True) or {}
+        t1 = data.get("team1")
+        t2 = data.get("team2")
+
+        if not t1 or not t2:
+            return jsonify({"error": "team1 and team2 are required"}), 400
+
+        if t1 == t2:
+            return jsonify({"error": "Same team cannot be used twice"}), 400
+
+        query = """
+        MATCH (a:Team {name: $t1})
+        MATCH (b:Team {name: $t2})
+        MATCH (a)-[r:RIVAL_OF]-(b)
+        DELETE r
+        RETURN count(r) AS removed
+        """
+
+        with driver.session(database="neo4j") as session:
+            removed = session.run(query, t1=t1, t2=t2).single()["removed"]
+
+        if removed == 0:
+            return jsonify({
+                "message": "No rivalry existed between these teams"
+            }), 404
+
+        return jsonify({
+            "message": "RIVAL_OF relationship deleted",
+            "team1": t1,
+            "team2": t2
+        }), 200
+    @app.delete("/neo4j/rivalries/all")
+    def delete_all_rivalries():
+        query = "MATCH ()-[r:RIVAL_OF]-() DELETE r RETURN count(r) AS removed"
+
+        with driver.session(database="neo4j") as session:
+            removed = session.run(query).single()["removed"]
+
+        return jsonify({
+            "message": "All rivalry relationships deleted",
+            "deleted_count": removed
         }), 200
