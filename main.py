@@ -4,17 +4,20 @@ import gevent.monkey
 gevent.monkey.patch_all()
 
 import certifi
-from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask
 from pymongo import MongoClient
-from bson import ObjectId
 
 app = Flask(__name__)
 
-client = MongoClient('mongodb+srv://arinatichonovskaja_db_user:Komanda@sportbet.wafmb2f.mongodb.net/?retryWrites=true&w=majority&appName=SportBet',
-                     tlsCAFile=certifi.where())
-db = client.SportBET        # DB pavadinimas
+# ---- MongoDB ----
+client = MongoClient(
+    'mongodb+srv://arinatichonovskaja_db_user:Komanda@sportbet.wafmb2f.mongodb.net/?retryWrites=true&w=majority&appName=SportBet',
+    tlsCAFile=certifi.where()
+)
+db = client.SportBET
+app.db = db
 
+# ---- Routes ----
 from matches import register_matches_routes
 register_matches_routes(app, db)
 
@@ -33,12 +36,16 @@ register_cart_routes(app, db)
 from chat import register_chat_routes
 register_chat_routes(app, db)
 
+# ---- Neo4j ----
 from neo4j_connect import neo4j
 neo4j(app, db)
 
 from neo4j_endpoints import register_neo4j_routes
 register_neo4j_routes(app)
 
+from neo4j_endpoints import register_neo4j_rivalry_routes
+register_neo4j_rivalry_routes(app)
+
+# ---- Run ----
 if __name__ == "__main__":
-    # paleidimas lokaliai
     app.run(debug=False, threaded=True, host="127.0.0.1", port=5000)

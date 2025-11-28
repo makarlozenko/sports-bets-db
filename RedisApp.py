@@ -12,7 +12,7 @@ def cache_get_json(key: str):
 
 def cache_set_json(key: str, value, ttl: int):
     jitter = random.randint(0, 10)
-    redis.setex(key, timedelta(seconds=ttl + jitter), json.dumps(value))
+    redis.setex(key, timedelta(seconds=ttl + jitter), json.dumps(value, default=str))
 
 def invalidate(*keys):
     if keys:

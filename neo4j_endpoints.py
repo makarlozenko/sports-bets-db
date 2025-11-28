@@ -1,10 +1,13 @@
-from flask import jsonify
+from flask import request, jsonify, current_app
 from neo4j_connect import driver
 
-#Checking bets relationships by user
+# ============================================================
+# 1. USER BETS
+# ============================================================
 def register_neo4j_routes(app):
     @app.route("/neo4j/by_user/<email>/bets", methods=["GET"])
     def get_user_bets(email):
+
         with driver.session(database="neo4j") as session:
             result = session.run(
                 """
@@ -18,4 +21,90 @@ def register_neo4j_routes(app):
                 {"email": email}
             )
             bets = [record.data() for record in result]
-        return jsonify({"user": email, "bets": bets})
+
+        return jsonify({"user": email, "bets": bets}), 200
+
+
+# ============================================================
+# 2. RIVALRIES
+# ============================================================
+def register_neo4j_rivalry_routes(app):
+
+    @app.post("/neo4j/rivalry")
+    def create_rivalry():
+        data = request.get_json(silent=True) or {}
+        t1 = data.get("team1")
+        t2 = data.get("team2")
+
+        if not t1 or not t2:
+            return jsonify({"error": "team1 and team2 are required"}), 400
+
+        if t1 == t2:
+            return jsonify({"error": "A team cannot be rival with itself"}), 400
+
+        # Use MongoDB via app.db
+        mongo = current_app.db
+
+        team1_exists = mongo.teams.find_one({"teamName": t1})
+        team2_exists = mongo.teams.find_one({"teamName": t2})
+
+        missing = []
+        if not team1_exists:
+            missing.append(t1)
+        if not team2_exists:
+            missing.append(t2)
+
+        if missing:
+            return jsonify({
+                "error": "Some teams do not exist in MongoDB",
+                "missing_teams": missing
+            }), 404
+
+        query = """
+        MERGE (a:Team {name: $t1})
+        MERGE (b:Team {name: $t2})
+        MERGE (a)-[:RIVAL_OF]-(b)
+        RETURN a.name AS team1, b.name AS team2
+        """
+
+        with driver.session(database="neo4j") as session:
+            record = session.run(query, t1=t1, t2=t2).single()
+
+        return jsonify({
+            "message": "RIVAL_OF relationship created",
+            "team1": record["team1"],
+            "team2": record["team2"]
+        }), 201
+
+    @app.get("/neo4j/team/<team>/rivals")
+    def deep_rivals(team):
+
+        mongo = current_app.db
+        team_exists = mongo.teams.find_one({"teamName": team})
+
+        if not team_exists:
+            return jsonify({
+                "error": "Team does not exist in MongoDB",
+                "team": team
+            }), 404
+
+        query = """
+        MATCH (start:Team {name: $team})
+        MATCH path = (start)-[:RIVAL_OF*1..10]-(other:Team)
+        WHERE other.name <> $team
+        RETURN DISTINCT other.name AS rival, length(path) AS distance
+        ORDER BY distance ASC
+        """
+
+        with driver.session(database="neo4j") as session:
+            result = session.run(query, team=team)
+            rivals = [
+                {"team": r["rival"], "distance": r["distance"]}
+                for r in result
+            ]
+
+        return jsonify({
+            "team": team,
+            "total_rivals": len(rivals),
+            "rivals": rivals
+        }), 200
