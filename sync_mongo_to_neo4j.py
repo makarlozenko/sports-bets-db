@@ -33,7 +33,7 @@ def sync_match(match_doc):
         return
 
     with neo4j_driver.session(database="neo4j") as session:
-        # 1) создаём/обновляем узел матча
+        # 1)sukuriam arba atnaujinam node
         session.run("""
             MERGE (m:Match {id: $id})
             SET m.sport = $sport,
@@ -41,7 +41,7 @@ def sync_match(match_doc):
                 m.status = COALESCE(m.status, 'SCHEDULED')
         """, {"id": match_id, "sport": sport, "date": date})
 
-        # 2) команды и связи
+        # 2)komandos ir rysiai
         session.run("""
             MERGE (t1:Team {name: $team1})
             MERGE (t2:Team {name: $team2})
@@ -65,7 +65,7 @@ def sync_bet(bet_doc):
     match_type = event.get("type")
     match_date = event.get("date")
 
-    # ключ матча в Neo4j — тот же, который вы использовали ранее
+    #neo4j raktas
     match_key = f"{team1}|{team2}|{match_type}|{match_date}"
 
     with neo4j_driver.session(database="neo4j") as session:
@@ -82,7 +82,7 @@ def sync_bet(bet_doc):
             "bet_id": bet_id
         })
 
-        # --- Match (узел) ---
+        # --- Match (node) ---
         session.run("""
             MERGE (m:Match {id: $match_key})
             ON CREATE SET
@@ -92,12 +92,12 @@ def sync_bet(bet_doc):
                 m.status     = COALESCE(m.status, 'SCHEDULED')
         """, {
             "match_key": match_key,
-            "sport": event.get("sport"),         # если есть
+            "sport": event.get("sport"),
             "match_type": match_type,
             "start_time": match_date
         })
 
-        # --- Teams + связи ---
+        # --- Teams + rysiai ---
         if team1 and team2:
             session.run("""
                 MERGE (t1:Team {name: $team1})

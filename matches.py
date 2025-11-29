@@ -319,14 +319,58 @@ def register_matches_routes(app, db):
 
     @app.delete("/matches/<id>")
     def delete_match(id):
-        """Delete match by ID."""
+        """Delete match by ID (Mongo + Neo4j)."""
         oid = to_oid(id)
         if not oid:
             return jsonify({"error": "Invalid id"}), 400
+
+        # 1)ieskom rungtyniu Mongo
+        match_doc = MATCHES.find_one({"_id": oid})
+        if not match_doc:
+            return jsonify({"error": "Not found"}), 404
+
+        team1 = (match_doc.get("team1") or {}).get("name")
+        team2 = (match_doc.get("team2") or {}).get("name")
+        match_id = str(oid)
+
+        # 2)trinam is Mongo
         res = MATCHES.delete_one({"_id": oid})
         if not res.deleted_count:
             return jsonify({"error": "Not found"}), 404
 
+        # 3)Neo4j
+        try:
+            with neo4j_driver.session(database="neo4j") as session:
+                #trinam matcha (HOME_TEAM, AWAY_TEAM, ON_MATCH ir tt.)
+                session.run(
+                    "MATCH (m:Match {id: $id}) DETACH DELETE m",
+                    {"id": match_id}
+                )
+
+                #patikrinam, ar zaidimu netapo maziau nei 3
+                if team1 and team2:
+                    pair_filter = {
+                        "$or": [
+                            {"team1.name": team1, "team2.name": team2},
+                            {"team1.name": team2, "team2.name": team1},
+                        ]
+                    }
+                    games = MATCHES.count_documents(pair_filter)
+
+                    if games < 3:
+                        #trinam RIVAL_OF, jei zaidimu maziau nei 3
+                        session.run(
+                            """
+                            MATCH (t1:Team {name: $t1})-[r:RIVAL_OF]-(t2:Team {name: $t2})
+                            DELETE r
+                            """,
+                            {"t1": team1, "t2": team2}
+                        )
+        except Exception as e:
+            #kad API nekristu
+            current_app.logger.exception("Failed to sync match delete to Neo4j: %s", e)
+
+        # 4)trinam cash'a
         invalidate_pattern("matches:list:*")
         invalidate_pattern("matches_filter:*")
         invalidate_pattern("matches_reorder:*")

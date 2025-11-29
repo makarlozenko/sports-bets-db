@@ -237,8 +237,8 @@ def register_neo4j_recommendation_routes(app):
             query = """
             MATCH (u:User {id: $email})-[:PLACED]->(b:Bet)-[:ON_TEAM]->(myTeam:Team)
 
-            //gylusis apėjimas: RIVAL_OF*1..3
-            MATCH path = (myTeam)-[:RIVAL_OF*1..3]-(rival:Team)
+            //gylusis apėjimas: RIVAL_OF*1..
+            MATCH path = (myTeam)-[:RIVAL_OF*1..]-(rival:Team)
 
             WITH u, myTeam, rival, min(length(path)) AS distance
             //priešų rungtynės
