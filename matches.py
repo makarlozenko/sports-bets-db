@@ -54,45 +54,57 @@ def register_matches_routes(app, db):
             return str(x)
         return x
 
+    from datetime import datetime
+
     def sync_match_to_neo4j(match_doc):
-        """
-        Sukuria / atnaujina Neo4j:
-          - Team-nodes
-          - Match-nodes
-          - sarysius HOME_TEAM / AWAY_TEAM
-          - po tam tikro kiekio sukuria RIVAL_OF
-        """
         match_id = str(match_doc["_id"])
         sport = match_doc.get("sport")
-        date = match_doc.get("date")
+        raw_date = match_doc.get("date")
+        match_type = match_doc.get("matchType")
         team1 = (match_doc.get("team1") or {}).get("name")
         team2 = (match_doc.get("team2") or {}).get("name")
 
         if not team1 or not team2:
             return
 
-        with neo4j_driver.session(database="neo4j") as session:
-            session.run("""
-                    MERGE (m:Match {id: $id})
-                    SET m.sport = $sport,
-                        m.startTime = $date,
-                        m.status = COALESCE(m.status, 'SCHEDULED')
-                """, {"id": match_id, "sport": sport, "date": date})
+        # normalizuojam datą į 'YYYY-MM-DD' string,
+        # kad sutaptų su tuo, ką naudoja Bets -> ON_MATCH
+        if isinstance(raw_date, datetime):
+            start_time_key = raw_date.date().isoformat()
+        else:
+            start_time_key = str(raw_date)
 
+        with neo4j_driver.session(database="neo4j") as session:
+            # Match
             session.run("""
-                    MERGE (t1:Team {name: $team1})
-                    MERGE (t2:Team {name: $team2})
-                    WITH t1, t2, $id AS id
-                    MATCH (m:Match {id: id})
-                    MERGE (m)-[:HOME_TEAM]->(t1)
-                    MERGE (m)-[:AWAY_TEAM]->(t2)
-                """, {
+                MERGE (m:Match {id: $id})
+                SET m.sport     = $sport,
+                    m.startTime = $start_time,
+                    m.matchType = $match_type,
+                    m.status    = COALESCE(m.status, 'SCHEDULED')
+            """, {
+                "id": match_id,
+                "sport": sport,
+                "start_time": start_time_key,
+                "match_type": match_type,
+            })
+
+            # Teams + ryšiai
+            session.run("""
+                MERGE (t1:Team {name: $team1, sport: $sport})
+                MERGE (t2:Team {name: $team2, sport: $sport})
+                WITH t1, t2, $id AS id
+                MATCH (m:Match {id: id})
+                MERGE (m)-[:HOME_TEAM]->(t1)
+                MERGE (m)-[:AWAY_TEAM]->(t2)
+            """, {
                 "id": match_id,
                 "team1": team1,
                 "team2": team2,
+                "sport": sport,
             })
 
-            # 2)Ziurim kiek zaidimu buvo tarp komandu Mongo
+            # RIVAL_OF logika – gali likti kaip yra
             pair_filter = {
                 "$or": [
                     {"team1.name": team1, "team2.name": team2},
@@ -100,15 +112,13 @@ def register_matches_routes(app, db):
                 ]
             }
             games = MATCHES.count_documents(pair_filter)
-
-            # 3) Jei suzaide ≥ 3 раза, sukuriam RIVAL_OF
             if games >= 3:
                 session.run(
                     """
-                    MATCH (t1:Team {name: $t1}), (t2:Team {name: $t2})
+                    MATCH (t1:Team {name: $t1, sport: $sport}), (t2:Team {name: $t2, sport: $sport})
                     MERGE (t1)-[:RIVAL_OF]-(t2)
                     """,
-                    {"t1": team1, "t2": team2}
+                    {"t1": team1, "t2": team2, "sport": sport}
                 )
 
     # ---------------------- CRUD ----------------------
@@ -332,6 +342,8 @@ def register_matches_routes(app, db):
         team1 = (match_doc.get("team1") or {}).get("name")
         team2 = (match_doc.get("team2") or {}).get("name")
         match_id = str(oid)
+        sport = match_doc.get("sport")
+
 
         # 2)trinam is Mongo
         res = MATCHES.delete_one({"_id": oid})
@@ -341,13 +353,19 @@ def register_matches_routes(app, db):
         # 3)Neo4j
         try:
             with neo4j_driver.session(database="neo4j") as session:
-                #trinam matcha (HOME_TEAM, AWAY_TEAM, ON_MATCH ir tt.)
-                session.run(
-                    "MATCH (m:Match {id: $id}) DETACH DELETE m",
-                    {"id": match_id}
-                )
+                # 3.1 Pirma ištrinam VISUS Bet, kurie susieti su šiuo match
+                session.run("""
+                    MATCH (m:Match {id: $id})<-[:ON_MATCH]-(b:Bet)
+                    DETACH DELETE b
+                """, {"id": match_id})
 
-                #patikrinam, ar zaidimu netapo maziau nei 3
+                # 3.2 Tada ištrinam patį Match (HOME_TEAM, AWAY_TEAM, ir t.t.)
+                session.run("""
+                    MATCH (m:Match {id: $id})
+                    DETACH DELETE m
+                """, {"id": match_id})
+
+                # 3.3 RIVAL_OF – paliekam kaip buvo
                 if team1 and team2:
                     pair_filter = {
                         "$or": [
@@ -357,18 +375,19 @@ def register_matches_routes(app, db):
                     }
                     games = MATCHES.count_documents(pair_filter)
 
-                    if games < 3:
-                        #trinam RIVAL_OF, jei zaidimu maziau nei 3
+                    if games < 3 and sport:
                         session.run(
                             """
-                            MATCH (t1:Team {name: $t1})-[r:RIVAL_OF]-(t2:Team {name: $t2})
+                            MATCH (t1:Team {name: $t1, sport: $sport})-[r:RIVAL_OF]-
+                                  (t2:Team {name: $t2, sport: $sport})
                             DELETE r
                             """,
-                            {"t1": team1, "t2": team2}
+                            {"t1": team1, "t2": team2, "sport": sport}
                         )
+
         except Exception as e:
-            #kad API nekristu
             current_app.logger.exception("Failed to sync match delete to Neo4j: %s", e)
+
 
         # 4)trinam cash'a
         invalidate_pattern("matches:list:*")
