@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Flask, jsonify
 
 # ---------- Neo4j driver setup ----------
-URI = "neo4j+s://37b79b6d.databases.neo4j.io"
+URI = "neo4j+ssc://37b79b6d.databases.neo4j.io"
 USER = "neo4j"
 PASSWORD = "qCyhqY1TKvwPEKrzECH7N8u-jBJOkH2lkvXQFLQT8c8"
 

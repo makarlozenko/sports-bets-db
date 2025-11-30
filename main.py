@@ -46,6 +46,9 @@ register_neo4j_routes(app)
 from neo4j_endpoints import register_neo4j_rivalry_routes
 register_neo4j_rivalry_routes(app)
 
+from neo4j_endpoints import register_neo4j_recommendation_routes
+register_neo4j_recommendation_routes(app)
+
 # ---- Run ----
 if __name__ == "__main__":
     app.run(debug=False, threaded=True, host="127.0.0.1", port=5000)

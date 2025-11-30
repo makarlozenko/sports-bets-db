@@ -167,3 +167,105 @@ def register_neo4j_rivalry_routes(app):
             "message": "All rivalry relationships deleted",
             "deleted_count": removed
         }), 200
+
+    # ============================================================
+    # 3. RECOMMENDATIONS & SIMILAR USERS
+    # ============================================================
+def register_neo4j_recommendation_routes(app):
+
+        # ---------- /neo4j/user/<email>/similar ----------
+        @app.get("/neo4j/user/<email>/similar")
+        def similar_users(email):
+            """
+            Find users who bet on the same matches or teams as the given user.
+            Similarity score = 2 * commonMatches + commonTeams
+            """
+            query = """
+            MATCH (u:User {id: $email})
+            //rungtynės ir komandos ant kurių statė useris
+            OPTIONAL MATCH (u)-[:PLACED]->(b:Bet)
+            OPTIONAL MATCH (b)-[:ON_MATCH]->(m:Match)
+            OPTIONAL MATCH (b)-[:ON_TEAM]->(t:Team)
+            WITH u,
+                 collect(DISTINCT m) AS myMatches,
+                 collect(DISTINCT t) AS myTeams
+
+            //kiti useriai ir jų statymai
+            MATCH (other:User)
+            WHERE other <> u
+            OPTIONAL MATCH (other)-[:PLACED]->(b2:Bet)
+            OPTIONAL MATCH (b2)-[:ON_MATCH]->(m2:Match)
+            OPTIONAL MATCH (b2)-[:ON_TEAM]->(t2:Team)
+            WITH u, other, myMatches, myTeams,
+                 collect(DISTINCT m2) AS otherMatches,
+                 collect(DISTINCT t2) AS otherTeams
+
+            WITH other,
+                 [m IN otherMatches WHERE m IN myMatches] AS commonMatches,
+                 [t IN otherTeams   WHERE t IN myTeams]   AS commonTeams
+            WITH other,
+                 size(commonMatches) AS commonMatchCount,
+                 size(commonTeams)   AS commonTeamCount
+            WHERE commonMatchCount > 0 OR commonTeamCount > 0
+
+            RETURN other.id AS user,
+                   commonMatchCount AS commonMatches,
+                   commonTeamCount AS commonTeams,
+                   2 * commonMatchCount + commonTeamCount AS score
+            ORDER BY score DESC
+            LIMIT 10
+            """
+
+            with driver.session(database="neo4j") as session:
+                result = session.run(query, email=email)
+                users = [record.data() for record in result]
+
+            return jsonify({
+                "user": email,
+                "similar_users": users,
+            }), 200
+
+        # ---------- /neo4j/recommend/matches/<email> ----------
+        @app.get("/neo4j/recommend/matches/<email>")
+        def recommend_matches(email):
+            """
+            Recommend matches for a user:
+            - take teams the user has bet ON_TEAM
+            - walk through RIVAL_OF relationships (1..3 hops)
+            - find upcoming/scheduled matches of those rival teams
+            """
+            query = """
+            MATCH (u:User {id: $email})-[:PLACED]->(b:Bet)-[:ON_TEAM]->(myTeam:Team)
+
+            //gylusis apėjimas: RIVAL_OF*1..
+            MATCH path = (myTeam)-[:RIVAL_OF*1..]-(rival:Team)
+
+            WITH u, myTeam, rival, min(length(path)) AS distance
+            //priešų rungtynės
+            MATCH (m:Match)-[:HOME_TEAM|:AWAY_TEAM]->(rival)
+            WHERE m.status IS NULL OR m.status IN ['SCHEDULED', 'OPEN']
+
+            RETURN DISTINCT
+                   rival.name AS rivalTeam,
+                   collect(DISTINCT m.id)   AS matchIds,
+                   collect(DISTINCT m.sport) AS sports,
+                   distance
+            ORDER BY distance ASC, size(matchIds) DESC
+            LIMIT 20
+            """
+
+            with driver.session(database="neo4j") as session:
+                result = session.run(query, email=email)
+                recs = []
+                for r in result:
+                    recs.append({
+                        "rivalTeam": r["rivalTeam"],
+                        "distance": r["distance"],
+                        "matchIds": r["matchIds"],
+                        "sports": r["sports"],
+                    })
+
+            return jsonify({
+                "user": email,
+                "recommendations": recs
+            }), 200

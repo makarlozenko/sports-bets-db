@@ -3,9 +3,12 @@ import json
 
 BASE_URL = "http://127.0.0.1:5000"
 
+
+
+# --- Bet data ---
 bet1_data = {
-    "userId": "327dff8b4f0efe26ea730666",
-    "userEmail": "paulius.grabauskas7@outlook.com",
+    "userId": "20ba1f0e3b20a2c5dcce32d6",
+    "userEmail": "rytis.jankauskas13@gmail.com",
     "event": {
         "team_1": "Vilnius FC",
         "team_2": "Kaunas United",
@@ -21,8 +24,8 @@ bet1_data = {
 }
 
 bet2_data = {
-    "userId": "3b43df693db1b3fec4f1746b",
-    "userEmail": "deividas.kazlauskas8@outlook.com",
+    "userId": "20ba1f0e3b20a2c5dcce32d6",
+    "userEmail": "rytis.jankauskas13@gmail.com",
     "event": {
         "team_1": "Vilnius Wolves",
         "team_2": "Panevezys Titans",
@@ -40,40 +43,27 @@ bet2_data = {
     }
 }
 
-# --- Create bets ---
+# --- Post bets ---
 bet1_resp = requests.post(f"{BASE_URL}/bets", json=bet1_data).json()
 bet2_resp = requests.post(f"{BASE_URL}/bets", json=bet2_data).json()
 
 print("Bet 1 created:", bet1_resp)
 print("Bet 2 created:", bet2_resp)
 
-# Safety
-if "bet" not in bet1_resp or "bet" not in bet2_resp:
-    print("One or both bets not created.")
-    print("Bet1:", bet1_resp)
-    print("Bet2:", bet2_resp)
-    exit(1)
+# --- Extract bet IDs ---
+bet1_id = bet1_resp['bet']['_id']
+bet2_id = bet2_resp['bet']['_id']
 
-bet1_id = bet1_resp["bet"]["_id"]
-bet2_id = bet2_resp["bet"]["_id"]
+# --- Fetch Neo4j bets for the user ---
+neo4j_bets_before = requests.get(f"{BASE_URL}/neo4j/by_user/rytis.jankauskas13@gmail.com/bets").json()
+print("\nNeo4j bets for user after creation:")
+print(json.dumps(neo4j_bets_before, indent=2))
 
-# --- Check Neo4J BEFORE deletion ---
-print("\nNeo4J data for Paulius:")
-neo_before_1 = requests.get(f"{BASE_URL}/neo4j/by_user/{bet1_data['userEmail']}/bets").json()
-print(json.dumps(neo_before_1, indent=2))
-
-print("\nNeo4J data for Deividas:")
-neo_before_2 = requests.get(f"{BASE_URL}/neo4j/by_user/{bet2_data['userEmail']}/bets").json()
-print(json.dumps(neo_before_2, indent=2))
-
-# --- Delete both bets ---
+# --- Delete bets ---
 requests.delete(f"{BASE_URL}/bets/{bet1_id}")
 requests.delete(f"{BASE_URL}/bets/{bet2_id}")
 
-print("\nNeo4J AFTER deletion:")
-
-neo_after_1 = requests.get(f"{BASE_URL}/neo4j/by_user/{bet1_data['userEmail']}/bets").json()
-print("Paulius:", json.dumps(neo_after_1, indent=2))
-
-neo_after_2 = requests.get(f"{BASE_URL}/neo4j/by_user/{bet2_data['userEmail']}/bets").json()
-print("Deividas:", json.dumps(neo_after_2, indent=2))
+# --- Fetch Neo4j bets for the user again ---
+neo4j_bets_after = requests.get(f"{BASE_URL}/neo4j/by_user/rytis.jankauskas13@gmail.com/bets").json()
+print("\nNeo4j bets for user after deletion:")
+print(json.dumps(neo4j_bets_after, indent=2))
