@@ -32,86 +32,86 @@ def seed_graph():
         session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (b:Bet) REQUIRE b.id IS UNIQUE")
 
         # ----- Teams -----
-        session.run(
-            """
-            MERGE (t1:Team {id: 'team-vilnius-wolves'})
-              ON CREATE SET t1.name = 'Vilnius Wolves',
-                            t1.country = 'LT',
-                            t1.sport = 'Basketball'
-            """
-        )
-
-        session.run(
-            """
-            MERGE (t2:Team {id: 'team-kaunas-green'})
-              ON CREATE SET t2.name = 'Kaunas Green',
-                            t2.country = 'LT',
-                            t2.sport = 'Basketball'
-            """
-        )
-
-        # ----- Users -----
-        session.run(
-            """
-            MERGE (u1:User {id: 'user-arina'})
-              ON CREATE SET u1.name = 'Arina',
-                            u1.country = 'LT',
-                            u1.createdAt = datetime()
-            """
-        )
-
-        session.run(
-            """
-            MERGE (u2:User {id: 'user-edvinas'})
-              ON CREATE SET u2.name = 'Edvinas',
-                            u2.country = 'LT',
-                            u2.createdAt = datetime()
-            """
-        )
-
-        # ----- Match -----
-        session.run(
-            """
-            MATCH (home:Team {id: 'team-vilnius-wolves'})
-            MATCH (away:Team {id: 'team-kaunas-green'})
-            MERGE (m:Match {id: 'match-wolves-green'})
-              ON CREATE SET m.sport = 'Basketball',
-                            m.startTime = datetime(),
-                            m.status = 'SCHEDULED'
-            MERGE (m)-[:HOME_TEAM]->(home)
-            MERGE (m)-[:AWAY_TEAM]->(away)
-            """
-        )
-
-        # ----- Bets -----
-        session.run(
-            """
-            MATCH (u1:User {id: 'user-arina'})
-            MATCH (u2:User {id: 'user-edvinas'})
-            MATCH (m:Match {id: 'match-wolves-green'})
-
-            MERGE (b1:Bet {id: 'bet-1'})
-              ON CREATE SET b1.stake = 10.0,
-                            b1.odds = 2.5,
-                            b1.potentialReturn = 25.0,
-                            b1.status = 'OPEN',
-                            b1.placedAt = datetime()
-
-            MERGE (b2:Bet {id: 'bet-2'})
-              ON CREATE SET b2.stake = 20.0,
-                            b2.odds = 1.8,
-                            b2.potentialReturn = 36.0,
-                            b2.status = 'WON',
-                            b2.placedAt = datetime()
-
-            MERGE (u1)-[:PLACED]->(b1)
-            MERGE (u2)-[:PLACED]->(b2)
-            MERGE (b1)-[:ON_MATCH]->(m)
-            MERGE (b2)-[:ON_MATCH]->(m)
-            """
-        )
-
-        print("Seeded fixed example graph.")
+        # session.run(
+        #     """
+        #     MERGE (t1:Team {id: 'team-vilnius-wolves'})
+        #       ON CREATE SET t1.name = 'Vilnius Wolves',
+        #                     t1.country = 'LT',
+        #                     t1.sport = 'Basketball'
+        #     """
+        # )
+        #
+        # session.run(
+        #     """
+        #     MERGE (t2:Team {id: 'team-kaunas-green'})
+        #       ON CREATE SET t2.name = 'Kaunas Green',
+        #                     t2.country = 'LT',
+        #                     t2.sport = 'Basketball'
+        #     """
+        # )
+        #
+        # # ----- Users -----
+        # session.run(
+        #     """
+        #     MERGE (u1:User {id: 'user-arina'})
+        #       ON CREATE SET u1.name = 'Arina',
+        #                     u1.country = 'LT',
+        #                     u1.createdAt = datetime()
+        #     """
+        # )
+        #
+        # session.run(
+        #     """
+        #     MERGE (u2:User {id: 'user-edvinas'})
+        #       ON CREATE SET u2.name = 'Edvinas',
+        #                     u2.country = 'LT',
+        #                     u2.createdAt = datetime()
+        #     """
+        # )
+        #
+        # # ----- Match -----
+        # session.run(
+        #     """
+        #     MATCH (home:Team {id: 'team-vilnius-wolves'})
+        #     MATCH (away:Team {id: 'team-kaunas-green'})
+        #     MERGE (m:Match {id: 'match-wolves-green'})
+        #       ON CREATE SET m.sport = 'Basketball',
+        #                     m.startTime = datetime(),
+        #                     m.status = 'SCHEDULED'
+        #     MERGE (m)-[:HOME_TEAM]->(home)
+        #     MERGE (m)-[:AWAY_TEAM]->(away)
+        #     """
+        # )
+        #
+        # # ----- Bets -----
+        # session.run(
+        #     """
+        #     MATCH (u1:User {id: 'user-arina'})
+        #     MATCH (u2:User {id: 'user-edvinas'})
+        #     MATCH (m:Match {id: 'match-wolves-green'})
+        #
+        #     MERGE (b1:Bet {id: 'bet-1'})
+        #       ON CREATE SET b1.stake = 10.0,
+        #                     b1.odds = 2.5,
+        #                     b1.potentialReturn = 25.0,
+        #                     b1.status = 'OPEN',
+        #                     b1.placedAt = datetime()
+        #
+        #     MERGE (b2:Bet {id: 'bet-2'})
+        #       ON CREATE SET b2.stake = 20.0,
+        #                     b2.odds = 1.8,
+        #                     b2.potentialReturn = 36.0,
+        #                     b2.status = 'WON',
+        #                     b2.placedAt = datetime()
+        #
+        #     MERGE (u1)-[:PLACED]->(b1)
+        #     MERGE (u2)-[:PLACED]->(b2)
+        #     MERGE (b1)-[:ON_MATCH]->(m)
+        #     MERGE (b2)-[:ON_MATCH]->(m)
+        #     """
+        # )
+        #
+        # print("Seeded fixed example graph.")
 
 def wipe_database():
     """Delete all nodes and relationships."""
@@ -152,14 +152,14 @@ def neo4j(app, db):
         except Exception as e:
             return jsonify({"status": "error", "error": str(e)}), 500
 
-    @app.route("/neo4j/delete-all", methods=["DELETE"])
-    def neo4j_delete_all():
-        """
-        Delete all nodes and relationships from Neo4j.
-        """
-        try:
-            wipe_database()
-            return jsonify({"status": "ok", "message": "All data deleted"}), 200
-        except Exception as e:
-            return jsonify({"status": "error", "error": str(e)}), 500
-
+    # @app.route("/neo4j/delete-all", methods=["DELETE"])
+    # def neo4j_delete_all():
+    #     """
+    #     Delete all nodes and relationships from Neo4j.
+    #     """
+    #     try:
+    #         wipe_database()
+    #         return jsonify({"status": "ok", "message": "All data deleted"}), 200
+    #     except Exception as e:
+    #         return jsonify({"status": "error", "error": str(e)}), 500
+    #
