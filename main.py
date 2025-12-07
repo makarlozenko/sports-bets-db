@@ -6,8 +6,10 @@ gevent.monkey.patch_all()
 import certifi
 from flask import Flask
 from pymongo import MongoClient
+from elasticsearch_client import es, test_es_connection
 
 app = Flask(__name__)
+test_es_connection()
 
 # ---- MongoDB ----
 client = MongoClient(
