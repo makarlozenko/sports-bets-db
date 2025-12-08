@@ -2,15 +2,6 @@
 
 ## 1. Overview
 This document describes how Elasticsearch was integrated into the SportBET project as a secondary analytical/search database.  
-The integration includes:
-
-- Running Elasticsearch + Kibana via Docker  
-- Real-time indexing of Matches and Bets from MongoDB  
-- REST endpoints for initializing indices and searching  
-- Tools for verifying synchronization in Kibana  
-- Full recovery mechanism (`/es/init`)
-
-This README is fully technical and intended for deployment, debugging, and university review.
 
 ---
 
@@ -33,7 +24,7 @@ To avoid container crashes, configure WSL2 resources.
 
 File:  
 ```
-C:\Users\<YourUser>\.wslconfig
+C:\Users\Admin\.wslconfig
 ```
 
 If file doesn’t exist — create it.
@@ -48,7 +39,7 @@ swap=2GB
 localhostForwarding=true
 ```
 
-Restart WSL:
+Restart WSL (Run PowerShell as Administrator):
 
 ```
 wsl --shutdown
@@ -87,7 +78,7 @@ services:
       - elasticsearch
 ```
 
-Start:
+Start (In the PowerShell in the project folder):
 
 ```
 docker compose up -d
@@ -102,63 +93,28 @@ docker ps
 Check Elasticsearch cluster:
 
 ```
-curl http://localhost:9200
+http://localhost:9200
 ```
 
 Open Kibana:
-
-👉 http://localhost:5601
-
+```
+http://localhost:5601
+```
 ---
 
-## 5. Python Elastic Client
 
-`elasticsearch_client.py`:
-
-```python
-from elasticsearch import Elasticsearch
-
-ES_URL = "http://localhost:9200"
-
-es = Elasticsearch(
-    ES_URL,
-    verify_certs=False
-)
-
-def test_es_connection():
-    try:
-        if es.ping():
-            print("Elasticsearch is UP")
-            info = es.info()
-            print("Cluster:", info['cluster_name'])
-            print("Version:", info['version']['number'])
-        else:
-            print("Elasticsearch is DOWN")
-    except Exception as e:
-        print("ES CONNECTION ERROR:", e)
-```
-
-Used in `main.py`:
-
-```python
-from elasticsearch_client import es, test_es_connection
-test_es_connection()
-```
-
----
-
-## 6. Index Initialization Endpoint
+## 5. Index Initialization Endpoint
 
 Endpoint:
 
 ```
-POST /es/init
+POST http://127.0.0.1:5000/es/init
 ```
 
 Creates two indices:
 
-- `bets`
-- `matches`
+- `bets_analytics`
+- `matches_search`
 
 Example response:
 
@@ -166,68 +122,56 @@ Example response:
 {
   "status": "ok",
   "indexes": {
-    "bets": { "status": "exists" },
-    "matches": { "status": "exists" }
+    "matches_search": "ready",
+    "bets_analytics": "ready"
   }
 }
 ```
 
 ---
 
-## 7. Index Mappings
+## 6. Index Mappings
 
-### matches index
+Endpoint:
 
-Stores:
+```
+POST http://127.0.0.1:5000/es/reset
+```
+Deletes AND recreates all indexes.
 
-- sport  
-- matchType  
-- date  
-- team1, team2  
+Endpoint:
 
-Mapping:
+```
+POST http://127.0.0.1:5000/es/sync/matches
+```
+Indexes all existing MongoDB matches into ES.
+If a new match will be created - it will be automatically indexed.
+Example response:
 
 ```json
 {
-  "mappings": {
-    "properties": {
-      "sport": { "type": "keyword" },
-      "matchType": { "type": "keyword" },
-      "team1": { "type": "keyword" },
-      "team2": { "type": "keyword" },
-      "date": { "type": "date" }
-    }
-  }
+ "status": "ok",
+ "indexed": 8
 }
 ```
 
-### bets index
+Endpoint:
 
-Stores:
+```
+POST http://127.0.0.1:5000/es/sync/bets
+```
+Indexes all existing MongoDB bets into ES.
+If a new bet will be created - it will be automatically indexed.
+Example response:
 
-- userEmail  
-- choice  
-- stake  
-- team bet_on  
-- sport  
-- match date  
-
----
-
-## 8. Real-Time Syncing
-
-When a new Match or Bet is created:
-
-```python
-es.index(index="matches", id=<mongodb_id>, document=...)
-es.index(index="bets", id=<mongodb_id>, document=...)
+```json
+{
+ "status": "ok",
+ "indexed": 14
+}
 ```
 
-Elasticsearch always mirrors MongoDB.
-
----
-
-## 9. Checking Data in Kibana
+## 7. Kibana: Testing Indexes
 
 Open:
 
@@ -236,7 +180,11 @@ Open:
 Then:
 
 **Discover → Create index pattern**
+Names:
 
+- `matches_search`
+- `bets_analytics`
+  
 Patterns:
 
 - `matches*`
@@ -244,60 +192,26 @@ Patterns:
 
 Select timestamp: `date`.
 
----
+Go to:
 
-## 10. Kibana Dev Tools Queries
+Analytics → Discover → Select index: matches_search
 
-Fetch all matches:
-
+Or test Elasticsearch manually in PowerShell in the project folder.
+Indexed matches:
+```bash
+curl.exe -X GET "http://localhost:9200/matches_search/_search?pretty"
 ```
-GET matches/_search
-{
-  "query": { "match_all": {} }
-}
-```
-
 Search by team:
-
+```bash
+curl.exe -X GET "http://localhost:9200/matches_search/_search?q=teams:Vilnius&pretty"
 ```
-GET matches/_search
-{
-  "query": {
-    "multi_match": {
-      "query": "Vilnius",
-      "fields": ["team1", "team2"]
-    }
-  }
-}
+Indexed bets:
+```bash
+curl.exe -X GET "http://localhost:9200/bets_analytics/_search?pretty"
 ```
-
 ---
 
-## 11. Postman Testing
-
-Re-init ES:
-
-```
-POST /es/init
-```
-
-Create match:
-
-```
-POST /matches
-```
-
-Create bet:
-
-```
-POST /bets
-```
-
-Check Kibana — data appears instantly.
-
----
-
-## 12. Complete Run Order
+## 8. Complete Run Order
 
 1. Start Docker Desktop  
 2. Ensure WSL2 RAM config  
@@ -318,23 +232,5 @@ Check Kibana — data appears instantly.
 
 ---
 
-## 13. Troubleshooting
-
-❌ **Elasticsearch DOWN**  
-Cause: Not enough RAM  
-Fix: Configure `.wslconfig`
-
----
-
-## 14. Conclusion
-
-You now have:
-
-- Elasticsearch running in Docker  
-- Kibana UI  
-- Full Python integration  
-- Real-time sync from MongoDB  
-- `/es/init` full recovery  
-- Search API ready  
 
 ✔ fulfills all assignment requirements.
