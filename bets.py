@@ -13,8 +13,24 @@ import time
 from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
 from neo4j_connect import driver as neo4j_driver
 
+from elasticsearch_client import es
+
 YYYY_MM_DD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 VALID_CHOICES = {"winner", "score"}
+
+def es_bet_body(bet_doc, match_sport):
+    return {
+        "bet_id": str(bet_doc["_id"]),
+        "user": bet_doc.get("userEmail"),
+        "team": bet_doc.get("bet", {}).get("team"),
+        "match_id": str(bet_doc.get("match_id")),
+        "status": bet_doc.get("status"),
+        "stake": float(bet_doc.get("bet", {}).get("stake", 0)),
+        "odds": float(bet_doc.get("bet", {}).get("odds", 0)) if "odds" in bet_doc.get("bet", {}) else None,
+        "sport": match_sport,
+        "createdAt": bet_doc.get("createdAt").isoformat() if bet_doc.get("createdAt") else None
+    }
+
 
 def register_bets_routes(app, db):
     BETS = db.Bets
@@ -530,6 +546,16 @@ def register_bets_routes(app, db):
                 invalidate("bets_summary")
 
                 new_bet = BETS.find_one({"_id": res.inserted_id})
+                # ---------- SYNC TO ELASTICSEARCH: bets_analytics ----------
+                try:
+                    es.index(
+                        index="bets_analytics",
+                        id=str(res.inserted_id),
+                        document=es_bet_body(new_bet, match_sport)
+                    )
+                except Exception as e:
+                    app.logger.error(f"ES sync error (create bet): {e}")
+
                 return jsonify({"message": "Bet added successfully.", "bet": ser(new_bet)}), 201
 
             finally:
@@ -564,6 +590,11 @@ def register_bets_routes(app, db):
             return jsonify({"error": "Not found"}), 404
 
         delete_bet_relationships(str(oid))
+        # ---- ES delete ----
+        try:
+            es.delete(index="bets_analytics", id=str(oid))
+        except Exception as e:
+            app.logger.error(f"ES sync error (delete bet): {e}")
 
         invalidate_pattern("bets:list:*")
         invalidate_pattern(f"bets_by_email:{user_email}:*")
@@ -722,6 +753,20 @@ def register_bets_routes(app, db):
         res = BETS.update_one({"_id": oid}, {"$set": {"status": status}})
         if res.modified_count == 0:
             return jsonify({"error": "No bet updated"}), 404
+
+        # ---- Update in Elasticsearch ----
+        updated_bet = BETS.find_one({"_id": oid})
+        match_doc = MATCHES.find_one({"team1.name": updated_bet["event"]["team_1"]})  # quick lookup
+        match_sport = match_doc.get("sport") if match_doc else None
+
+        try:
+            es.index(
+                index="bets_analytics",
+                id=str(oid),
+                document=es_bet_body(updated_bet, match_sport)
+            )
+        except Exception as e:
+            app.logger.error(f"ES sync error (update status): {e}")
 
         invalidate_pattern("bets:list:*")
         invalidate_pattern(f"bets_by_email:{user_email}:*")

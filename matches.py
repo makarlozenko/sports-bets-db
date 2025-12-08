@@ -314,7 +314,7 @@ def register_matches_routes(app, db):
             # ---- Sync to Elasticsearch ----
             try:
                 es.index(
-                    index="matches",
+                    index="matches_search",
                     id=str(res.inserted_id),
                     document=es_match_body(new_doc)
                 )
@@ -355,7 +355,7 @@ def register_matches_routes(app, db):
         # Sync update to Elasticsearch
         try:
             es.index(
-                index="matches",
+                index="matches_search",
                 id=str(oid),
                 document=es_match_body(MATCHES.find_one({"_id": oid}))
             )
@@ -433,7 +433,7 @@ def register_matches_routes(app, db):
 
         # Sync delete to Elasticsearch
         try:
-            es.delete(index="matches", id=str(oid))
+            es.delete(index="matches_search", id=str(oid))
         except Exception as e:
             current_app.logger.error(f"ES sync error (delete match): {e}")
 
