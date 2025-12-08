@@ -1,17 +1,17 @@
 from elasticsearch import Elasticsearch
 
-ES_URL = "http://localhost:9200"
-
+# Important: official 8.x client requires dict, not string
 es = Elasticsearch(
-    ES_URL,
+    hosts=[{"host": "localhost", "port": 9200, "scheme": "http"}],
     verify_certs=False
 )
 
 def test_es_connection():
     try:
-        if es.ping():
-            print("Elasticsearch is UP")
-        else:
-            print("Elasticsearch is DOWN")
+        info = es.info()
+        print("Elasticsearch is UP")
+        print("Cluster:", info['cluster_name'])
+        print("Version:", info['version']['number'])
     except Exception as e:
-        print("ES CONNECTION ERROR:", e)
+        print("Elasticsearch is DOWN")
+        print("ERROR:", e)

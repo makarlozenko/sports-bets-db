@@ -7,6 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
 from neo4j_connect import driver as neo4j_driver
+from elasticsearch_client import es
 
 def register_matches_routes(app, db):
     MATCHES = db.Matches   # collection
@@ -55,6 +56,22 @@ def register_matches_routes(app, db):
         return x
 
     from datetime import datetime
+
+    def es_match_body(match_doc):
+        """Convert Mongo match to an Elasticsearch indexable JSON."""
+        return {
+            "id": str(match_doc["_id"]),
+            "sport": match_doc.get("sport"),
+            "matchType": match_doc.get("matchType"),
+            "date": str(match_doc.get("date")),
+            "team1": (match_doc.get("team1") or {}).get("name"),
+            "team2": (match_doc.get("team2") or {}).get("name"),
+            "odds": str(match_doc.get("odds")),
+            "oddsDetail": {
+                "team1": str((match_doc.get("oddsDetail") or {}).get("team1")),
+                "team2": str((match_doc.get("oddsDetail") or {}).get("team2")),
+            }
+        }
 
     def sync_match_to_neo4j(match_doc):
         match_id = str(match_doc["_id"])
@@ -294,6 +311,15 @@ def register_matches_routes(app, db):
             res = MATCHES.insert_one(data)
             new_doc = MATCHES.find_one({"_id": res.inserted_id})
 
+            # ---- Sync to Elasticsearch ----
+            try:
+                es.index(
+                    index="matches",
+                    id=str(res.inserted_id),
+                    document=es_match_body(new_doc)
+                )
+            except Exception as e:
+                current_app.logger.error(f"ES sync error (create match): {e}")
 
             try:
                 sync_match_to_neo4j(new_doc)
@@ -325,7 +351,18 @@ def register_matches_routes(app, db):
         invalidate_pattern("matches_filter:*")
         invalidate_pattern("matches_reorder:*")
 
-        return jsonify(ser(MATCHES.find_one({"_id": oid})))
+        doc = MATCHES.find_one({"_id": oid})
+        # Sync update to Elasticsearch
+        try:
+            es.index(
+                index="matches",
+                id=str(oid),
+                document=es_match_body(MATCHES.find_one({"_id": oid}))
+            )
+        except Exception as e:
+            current_app.logger.error(f"ES sync error (update match): {e}")
+
+        return jsonify(ser(doc))
 
     @app.delete("/matches/<id>")
     def delete_match(id):
@@ -393,6 +430,12 @@ def register_matches_routes(app, db):
         invalidate_pattern("matches:list:*")
         invalidate_pattern("matches_filter:*")
         invalidate_pattern("matches_reorder:*")
+
+        # Sync delete to Elasticsearch
+        try:
+            es.delete(index="matches", id=str(oid))
+        except Exception as e:
+            current_app.logger.error(f"ES sync error (delete match): {e}")
 
         return jsonify({"deleted": True, "_id": id})
 
