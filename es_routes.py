@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from elasticsearch_client import es
 
 es_bp = Blueprint("es_indexes", __name__)
@@ -9,12 +9,16 @@ BETS_INDEX = "bets_analytics"
 MATCHES_MAPPING = {
     "mappings": {
         "properties": {
-            "match_id": {"type": "keyword"},
-            "sport": {"type": "keyword"},
-            "teams": {"type": "text"},
-            "date": {"type": "date"},
-            "matchType": {"type": "keyword"},
-            "odds": {"type": "float"}
+            "match_id":     {"type": "keyword"},
+            "sport":        {"type": "keyword"},
+            "teams":        {"type": "text"},     # "Vilnius FC vs Kaunas United"
+            "team1_name":   {"type": "keyword"},
+            "team2_name":   {"type": "keyword"},
+            "team1_rating": {"type": "float"},
+            "team2_rating": {"type": "float"},
+            "date":         {"type": "date"},
+            "matchType":    {"type": "keyword"},
+            "odds":         {"type": "float"},
         }
     }
 }
@@ -43,6 +47,37 @@ def to_float_odds(value):
         return float(value)
     except:
         return 0.0
+
+def build_es_match_doc(doc, teams_collection):
+    """Собрать документ матча для Elasticsearch с именами и рейтингами команд."""
+    match_id = str(doc["_id"])
+    sport = doc.get("sport")
+    date = doc.get("date")
+    match_type = doc.get("matchType")
+
+    team1_name = (doc.get("team1") or {}).get("name")
+    team2_name = (doc.get("team2") or {}).get("name")
+
+    # тянем рейтинг из Mongo.Teams
+    t1 = teams_collection.find_one({"name": team1_name}) or {}
+    t2 = teams_collection.find_one({"name": team2_name}) or {}
+
+    def rating_or_none(team_doc):
+        r = team_doc.get("rating")
+        return float(r) if r is not None else None
+
+    return {
+        "match_id":     match_id,
+        "sport":        sport,
+        "teams":        f"{team1_name} vs {team2_name}",
+        "team1_name":   team1_name,
+        "team2_name":   team2_name,
+        "team1_rating": rating_or_none(t1),
+        "team2_rating": rating_or_none(t2),
+        "date":         date,
+        "matchType":    match_type,
+        "odds":         to_float_odds(doc.get("odds")),
+    }
 
 
 # ------------------------------------------
@@ -79,6 +114,127 @@ def reset_indexes():
 # ------------------------------------------
 
 def register_es_routes(app):
+    @app.post("/admin/reindex/matches")
+    def admin_reindex_matches():
+        MATCHES = app.db.Matches
+        TEAMS = app.db.Teams
+
+        # 1) дропаем только индекс матчей
+        if es.indices.exists(index=MATCHES_INDEX):
+            es.indices.delete(index=MATCHES_INDEX)
+
+        # 2) создаём заново с mapping
+        es.indices.create(index=MATCHES_INDEX, body=MATCHES_MAPPING)
+
+        # 3) заливаем все матчи
+        count = 0
+        for doc in MATCHES.find({}):
+            body = build_es_match_doc(doc, TEAMS)
+            es.index(index=MATCHES_INDEX, id=str(doc["_id"]), document=body)
+            count += 1
+
+        return jsonify({
+            "status": "ok",
+            "reindexed": count
+        }), 200
+
+    @app.get("/search/matches")
+    def search_matches():
+        team = request.args.get("team", "").strip()
+        sport = request.args.get("sport", "").strip()
+        date_from = request.args.get("from")
+        date_to = request.args.get("to")
+
+        must = []
+        filt = []
+
+        if team:
+            must.append({
+                "multi_match": {
+                    "query": team,
+                    "fields": ["teams^2", "team1_name", "team2_name"]
+                }
+            })
+
+        if sport:
+            filt.append({"term": {"sport": sport}})
+
+        if date_from or date_to:
+            range_q = {}
+            if date_from:
+                range_q["gte"] = date_from
+            if date_to:
+                range_q["lte"] = date_to
+            filt.append({"range": {"date": range_q}})
+
+        if not must and not filt:
+            # ничего не задано – вернём пустой ответ
+            return jsonify({"total": 0, "items": []}), 200
+
+        query = {"bool": {}}
+        if must:
+            query["bool"]["must"] = must
+        if filt:
+            query["bool"]["filter"] = filt
+
+        res = es.search(
+            index=MATCHES_INDEX,
+            query=query,
+            size=50
+        )
+
+        hits = res["hits"]["hits"]
+        items = [
+            {
+                "match_id": h["_source"]["match_id"],
+                "sport": h["_source"].get("sport"),
+                "teams": h["_source"].get("teams"),
+                "team1_rating": h["_source"].get("team1_rating"),
+                "team2_rating": h["_source"].get("team2_rating"),
+                "date": h["_source"].get("date"),
+                "matchType": h["_source"].get("matchType"),
+                "score": h["_score"],
+            }
+            for h in hits
+        ]
+
+        return jsonify({
+            "total": res["hits"]["total"]["value"],
+            "items": items
+        }), 200
+
+    @app.get("/search/teams")
+    def search_teams():
+        q = request.args.get("q", "").strip()
+        if not q:
+            return jsonify({"teams": []}), 200
+
+        res = es.search(
+            index=MATCHES_INDEX,
+            query={
+                "match_phrase_prefix": {
+                    "teams": {
+                        "query": q
+                    }
+                }
+            },
+            size=50
+        )
+
+        q_lower = q.lower()
+        suggestions = set()
+
+        for hit in res["hits"]["hits"]:
+            teams_text = hit["_source"].get("teams") or ""
+            for name in teams_text.split(" vs "):
+                name_clean = name.strip()
+                if name_clean.lower().startswith(q_lower):
+                    suggestions.add(name_clean)
+
+        return jsonify({
+            "query": q,
+            "teams": sorted(suggestions)
+        }), 200
 
     @app.post("/es/init")
     def es_init():
@@ -93,19 +249,13 @@ def register_es_routes(app):
     @app.post("/es/sync/matches")
     def sync_all_matches():
         MATCHES = app.db.Matches
+        TEAMS = app.db.Teams
         cursor = MATCHES.find({})
         count = 0
 
         for doc in cursor:
             match_id = str(doc["_id"])
-            body = {
-                "match_id": match_id,
-                "sport": doc.get("sport"),
-                "teams": f"{doc['team1']['name']} vs {doc['team2']['name']}",
-                "date": doc.get("date"),
-                "matchType": doc.get("matchType"),
-                "odds": to_float_odds(doc.get("odds")),
-            }
+            body = build_es_match_doc(doc, TEAMS)
             es.index(index=MATCHES_INDEX, id=match_id, document=body)
             count += 1
 
