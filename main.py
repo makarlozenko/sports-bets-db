@@ -55,10 +55,6 @@ register_neo4j_recommendation_routes(app)
 from es_routes import register_es_routes
 register_es_routes(app)
 
-# ---- ES INIT ROUTES ----
-from es_init import es_bp
-app.register_blueprint(es_bp)
-
 # ---- Run ----
 if __name__ == "__main__":
     app.run(debug=True, threaded=True, host="127.0.0.1", port=5000)

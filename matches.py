@@ -8,6 +8,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from RedisApp import cache_get_json, cache_set_json, invalidate, invalidate_pattern
 from neo4j_connect import driver as neo4j_driver
 from elasticsearch_client import es
+from es_routes import build_es_match_doc
 
 def register_matches_routes(app, db):
     MATCHES = db.Matches   # collection
@@ -57,21 +58,42 @@ def register_matches_routes(app, db):
 
     from datetime import datetime
 
-    def es_match_body(match_doc):
-        """Convert Mongo match to an Elasticsearch indexable JSON."""
-        return {
-            "id": str(match_doc["_id"]),
-            "sport": match_doc.get("sport"),
-            "matchType": match_doc.get("matchType"),
-            "date": str(match_doc.get("date")),
-            "team1": (match_doc.get("team1") or {}).get("name"),
-            "team2": (match_doc.get("team2") or {}).get("name"),
-            "odds": str(match_doc.get("odds")),
-            "oddsDetail": {
-                "team1": str((match_doc.get("oddsDetail") or {}).get("team1")),
-                "team2": str((match_doc.get("oddsDetail") or {}).get("team2")),
-            }
-        }
+    # def es_match_body(match_doc):
+    #     """Paruošti match dokumentą Elasticsearch indeksui matches_search."""
+    #
+    #     team1_name = (match_doc.get("team1") or {}).get("name")
+    #     team2_name = (match_doc.get("team2") or {}).get("name")
+    #     sport = match_doc.get("sport")
+    #
+    #     # --- pasiimam reitingus iš Mongo Teams kolekcijos ---
+    #     # Team dokumente laukai: teamName, sport, rating
+    #     t1 = TEAMS.find_one({"teamName": team1_name, "sport": sport}) or {}
+    #     t2 = TEAMS.find_one({"teamName": team2_name, "sport": sport}) or {}
+    #
+    #     def rating_or_none(team_doc):
+    #         r = team_doc.get("rating")
+    #         try:
+    #             return float(r) if r is not None else None
+    #         except (TypeError, ValueError):
+    #             return None
+    #
+    #     return {
+    #         # atitinka MATCHES_MAPPING: "match_id": {"type": "keyword"}
+    #         "match_id": str(match_doc["_id"]),
+    #         "sport": sport,
+    #         # tekstinis laukas "Vilnius FC vs Kaunas United" paieškai/autocomplete
+    #         "teams": f"{team1_name} vs {team2_name}",
+    #         # keyword laukai filtrams / grupavimui
+    #         "team1_name": team1_name,
+    #         "team2_name": team2_name,
+    #         # praturtinimas iš Teams kolekcijos
+    #         "team1_rating": rating_or_none(t1),
+    #         "team2_rating": rating_or_none(t2),
+    #         # data – eina kaip datetime, ES pats susitvarkys kaip "date" tipą
+    #         "date": match_doc.get("date"),
+    #         "matchType": match_doc.get("matchType"),
+    #         "odds": float(match_doc.get("odds")) if match_doc.get("odds") is not None else None,
+    #     }
 
     def sync_match_to_neo4j(match_doc):
         match_id = str(match_doc["_id"])
@@ -121,7 +143,7 @@ def register_matches_routes(app, db):
                 "sport": sport,
             })
 
-            # RIVAL_OF logika – gali likti kaip yra
+            # RIVAL_OF logika
             pair_filter = {
                 "$or": [
                     {"team1.name": team1, "team2.name": team2},
@@ -233,29 +255,30 @@ def register_matches_routes(app, db):
         """
         Tikimybė pagal rating skirtumą (Bradley–Terry / Elo logit).
         """
-        t1 = TEAMS.find_one({"name": team1}) or {}
-        t2 = TEAMS.find_one({"name": team2}) or {}
+        # TEISINGAS MONGO LAUKAS: teamName + sport
+        t1 = TEAMS.find_one({"teamName": team1, "sport": sport}) or {}
+        t2 = TEAMS.find_one({"teamName": team2, "sport": sport}) or {}
+
         r1 = float(t1.get("rating", DEFAULT_RATING))
         r2 = float(t2.get("rating", DEFAULT_RATING))
+
         diff = r1 - r2
         return 1.0 / (1.0 + 10.0 ** (-diff / LOGISTIC_SCALE))
 
-    def _compute_probs(team1: str, team2: str) -> tuple[float, float]:
-        """
-        Mišinys: p1 = w*form1 + (1-w)*rating_prob; p2 = 1 - p1.
-        (lygiosios ignoruojamos paprastumo dėlei)
-        """
+    def _compute_probs(team1: str, team2: str, sport: str) -> tuple[float, float]:
         f1 = _team_form_winrate(team1)
         f2 = _team_form_winrate(team2)
+
         if f1 + f2 > 0:
             s = f1 + f2
             f1, f2 = f1 / s, f2 / s
         else:
             f1 = f2 = 0.5
 
-        pr1 = _rating_prob(team1, team2)
+        pr1 = _rating_prob(team1, team2)  # NAUDOJA TEISINGĄ RATING lookup
         p1 = FORM_WEIGHT * f1 + (1.0 - FORM_WEIGHT) * pr1
-        p1 = max(0.001, min(0.999, p1))  # apsauga nuo kraštutinumų
+
+        p1 = max(0.001, min(0.999, p1))
         p2 = 1.0 - p1
         return p1, p2
 
@@ -299,7 +322,7 @@ def register_matches_routes(app, db):
                 }), 409
 
             # --- auto-odds (forma + rating) ---
-            p1, p2 = _compute_probs(team1, team2)
+            p1, p2 = _compute_probs(team1, team2, sport)
             o1 = _odds_from_prob(p1)
             o2 = _odds_from_prob(p2)
 
@@ -313,11 +336,13 @@ def register_matches_routes(app, db):
 
             # ---- Sync to Elasticsearch ----
             try:
+                TEAMS = app.db.Teams
                 es.index(
                     index="matches_search",
                     id=str(res.inserted_id),
-                    document=es_match_body(new_doc)
+                    document=build_es_match_doc(new_doc, TEAMS)
                 )
+
             except Exception as e:
                 current_app.logger.error(f"ES sync error (create match): {e}")
 
@@ -341,9 +366,11 @@ def register_matches_routes(app, db):
         oid = to_oid(id)
         if not oid:
             return jsonify({"error": "Invalid id"}), 400
+
         data = request.get_json(silent=True) or {}
         data["updated_at"] = datetime.utcnow()
         upd = MATCHES.update_one({"_id": oid}, {"$set": data})
+
         if not upd.matched_count:
             return jsonify({"error": "Not found"}), 404
 
@@ -352,12 +379,14 @@ def register_matches_routes(app, db):
         invalidate_pattern("matches_reorder:*")
 
         doc = MATCHES.find_one({"_id": oid})
+
         # Sync update to Elasticsearch
         try:
+            updated = MATCHES.find_one({"_id": oid})
             es.index(
                 index="matches_search",
                 id=str(oid),
-                document=es_match_body(MATCHES.find_one({"_id": oid}))
+                document=build_es_match_doc(updated, TEAMS)
             )
         except Exception as e:
             current_app.logger.error(f"ES sync error (update match): {e}")

@@ -18,18 +18,63 @@ from elasticsearch_client import es
 YYYY_MM_DD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 VALID_CHOICES = {"winner", "score"}
 
+from elasticsearch_client import es
+from bson.decimal128 import Decimal128
+from decimal import Decimal
+
+# ...
+
 def es_bet_body(bet_doc, match_sport):
+    """
+    Paruošiam analitinį dokumentą Elasticsearch `bets_analytics` indeksui.
+    Čia apskaičiuojamas payout ir isWin, kad vėliau analitika būtų paprasta.
+    """
+    bet_id = str(bet_doc["_id"])
+    status = bet_doc.get("status")
+    bet_block = bet_doc.get("bet", {}) or {}
+
+    # stake kaip float
+    raw_stake = bet_block.get("stake", 0)
+    if isinstance(raw_stake, Decimal128):
+        stake = float(raw_stake.to_decimal())
+    elif isinstance(raw_stake, Decimal):
+        stake = float(raw_stake)
+    else:
+        try:
+            stake = float(raw_stake)
+        except Exception:
+            stake = 0.0
+
+    # odds – jei yra
+    raw_odds = bet_block.get("odds")
+    try:
+        odds = float(raw_odds) if raw_odds is not None else None
+    except Exception:
+        odds = None
+
+    is_win = (status == "won")
+    payout = stake * odds if (is_win and odds is not None) else 0.0
+
+    created_at = bet_doc.get("createdAt")
+    if isinstance(created_at, datetime):
+        created_at_iso = created_at.isoformat()
+    else:
+        created_at_iso = None
+
     return {
-        "bet_id": str(bet_doc["_id"]),
+        "bet_id": bet_id,
         "user": bet_doc.get("userEmail"),
-        "team": bet_doc.get("bet", {}).get("team"),
-        "match_id": str(bet_doc.get("match_id")),
-        "status": bet_doc.get("status"),
-        "stake": float(bet_doc.get("bet", {}).get("stake", 0)),
-        "odds": float(bet_doc.get("bet", {}).get("odds", 0)) if "odds" in bet_doc.get("bet", {}) else None,
+        "team": bet_block.get("team"),
+        "match_id": str(bet_doc.get("match_id")) if bet_doc.get("match_id") else None,
+        "status": status,
+        "isWin": is_win,
+        "stake": stake,
+        "odds": odds,
+        "payout": payout,
         "sport": match_sport,
-        "createdAt": bet_doc.get("createdAt").isoformat() if bet_doc.get("createdAt") else None
+        "createdAt": created_at_iso,
     }
+
 
 
 def register_bets_routes(app, db):
