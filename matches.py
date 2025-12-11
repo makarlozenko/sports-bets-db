@@ -12,7 +12,7 @@ from es_routes import build_es_match_doc
 
 def register_matches_routes(app, db):
     MATCHES = db.Matches   # collection
-    TEAMS = db.Teams
+    TEAMS = db.Team
 
     def to_oid(s):
         try:
@@ -58,42 +58,42 @@ def register_matches_routes(app, db):
 
     from datetime import datetime
 
-    # def es_match_body(match_doc):
-    #     """Paruošti match dokumentą Elasticsearch indeksui matches_search."""
-    #
-    #     team1_name = (match_doc.get("team1") or {}).get("name")
-    #     team2_name = (match_doc.get("team2") or {}).get("name")
-    #     sport = match_doc.get("sport")
-    #
-    #     # --- pasiimam reitingus iš Mongo Teams kolekcijos ---
-    #     # Team dokumente laukai: teamName, sport, rating
-    #     t1 = TEAMS.find_one({"teamName": team1_name, "sport": sport}) or {}
-    #     t2 = TEAMS.find_one({"teamName": team2_name, "sport": sport}) or {}
-    #
-    #     def rating_or_none(team_doc):
-    #         r = team_doc.get("rating")
-    #         try:
-    #             return float(r) if r is not None else None
-    #         except (TypeError, ValueError):
-    #             return None
-    #
-    #     return {
-    #         # atitinka MATCHES_MAPPING: "match_id": {"type": "keyword"}
-    #         "match_id": str(match_doc["_id"]),
-    #         "sport": sport,
-    #         # tekstinis laukas "Vilnius FC vs Kaunas United" paieškai/autocomplete
-    #         "teams": f"{team1_name} vs {team2_name}",
-    #         # keyword laukai filtrams / grupavimui
-    #         "team1_name": team1_name,
-    #         "team2_name": team2_name,
-    #         # praturtinimas iš Teams kolekcijos
-    #         "team1_rating": rating_or_none(t1),
-    #         "team2_rating": rating_or_none(t2),
-    #         # data – eina kaip datetime, ES pats susitvarkys kaip "date" tipą
-    #         "date": match_doc.get("date"),
-    #         "matchType": match_doc.get("matchType"),
-    #         "odds": float(match_doc.get("odds")) if match_doc.get("odds") is not None else None,
-    #     }
+    def es_match_body(match_doc):
+        """Paruošti match dokumentą Elasticsearch indeksui matches_search."""
+
+        team1_name = (match_doc.get("team1") or {}).get("name")
+        team2_name = (match_doc.get("team2") or {}).get("name")
+        sport = match_doc.get("sport")
+
+        # --- pasiimam reitingus iš Mongo Teams kolekcijos ---
+        # Team dokumente laukai: teamName, sport, rating
+        t1 = TEAMS.find_one({"teamName": team1_name, "sport": sport}) or {}
+        t2 = TEAMS.find_one({"teamName": team2_name, "sport": sport}) or {}
+
+        def rating_or_none(team_doc):
+            r = team_doc.get("rating")
+            try:
+                return float(r) if r is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        return {
+            # atitinka MATCHES_MAPPING: "match_id": {"type": "keyword"}
+            "match_id": str(match_doc["_id"]),
+            "sport": sport,
+            # tekstinis laukas "Vilnius FC vs Kaunas United" paieškai/autocomplete
+            "teams": f"{team1_name} vs {team2_name}",
+            # keyword laukai filtrams / grupavimui
+            "team1_name": team1_name,
+            "team2_name": team2_name,
+            # praturtinimas iš Teams kolekcijos
+            "team1_rating": rating_or_none(t1),
+            "team2_rating": rating_or_none(t2),
+            # data – eina kaip datetime, ES pats susitvarkys kaip "date" tipą
+            "date": match_doc.get("date"),
+            "matchType": match_doc.get("matchType"),
+            "odds": float(match_doc.get("odds")) if match_doc.get("odds") is not None else None,
+        }
 
     def sync_match_to_neo4j(match_doc):
         match_id = str(match_doc["_id"])
@@ -336,7 +336,7 @@ def register_matches_routes(app, db):
 
             # ---- Sync to Elasticsearch ----
             try:
-                TEAMS = app.db.Teams
+                TEAMS = app.db.Team
                 es.index(
                     index="matches_search",
                     id=str(res.inserted_id),

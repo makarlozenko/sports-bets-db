@@ -206,7 +206,7 @@ def register_es_routes(app):
     @app.post("/admin/reindex/matches")
     def admin_reindex_matches():
         MATCHES = app.db.Matches
-        TEAMS = app.db.Teams
+        TEAMS = app.db.Team
 
         # 1) дропаем только индекс матчей
         if es.indices.exists(index=MATCHES_INDEX):
@@ -362,7 +362,7 @@ def register_es_routes(app):
     @app.post("/es/sync/matches")
     def sync_all_matches():
         MATCHES = app.db.Matches
-        TEAMS = app.db.Teams
+        TEAMS = app.db.Team
         cursor = MATCHES.find({})
         count = 0
 
