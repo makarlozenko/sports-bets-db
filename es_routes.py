@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from elasticsearch_client import es
-
+from decimal import Decimal
 es_bp = Blueprint("es_indexes", __name__)
 
 MATCHES_INDEX = "matches_search"
@@ -72,8 +72,18 @@ def build_es_match_doc(doc, teams_collection):
 
     def rating_or_none(team_doc):
         r = team_doc.get("rating")
+        if r is None:
+            return None
+
         try:
-            return float(r) if r is not None else None
+            # Если Decimal128 – сначала to_decimal()
+            if isinstance(r, Decimal128):
+                r = r.to_decimal()
+            # Если Decimal – тоже нормально
+            if isinstance(r, Decimal):
+                return float(r)
+            # Если уже float/int/строка – float сам разберётся
+            return float(r)
         except Exception:
             return None
 

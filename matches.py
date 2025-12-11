@@ -10,6 +10,29 @@ from neo4j_connect import driver as neo4j_driver
 from elasticsearch_client import es
 from es_routes import build_es_match_doc
 
+#----------- POST ----------------
+FORM_N_GAMES = 10
+SMOOTH_ALPHA = 1.0
+DEFAULT_RATING = 1500
+LOGISTIC_SCALE = 400.0
+FORM_WEIGHT = 0.6  # kiek svarbi forma prieš rating
+MARGIN = Decimal("1.06")
+ODDS_MIN = Decimal("0.50")  #ne mažiau kaip 0.50
+ODDS_MAX = Decimal("10.00")  #ir ne daugiau kaip 10.00
+
+def _get_rating(team_doc):
+    r = team_doc.get("rating")
+    if r is None:
+        return DEFAULT_RATING
+    try:
+        if isinstance(r, Decimal128):
+            r = r.to_decimal()
+        if isinstance(r, Decimal):
+            return float(r)
+        return float(r)
+    except Exception:
+        return DEFAULT_RATING
+
 def register_matches_routes(app, db):
     MATCHES = db.Matches   # collection
     TEAMS = db.Team
@@ -209,16 +232,6 @@ def register_matches_routes(app, db):
             return jsonify({"error": "Not found"}), 404
         return jsonify(ser(doc))
 
-    #----------- POST ----------------
-    FORM_N_GAMES = 10
-    SMOOTH_ALPHA = 1.0
-    DEFAULT_RATING = 1500
-    LOGISTIC_SCALE = 400.0
-    FORM_WEIGHT = 0.6  # kiek svarbi forma prieš rating
-    MARGIN = Decimal("1.06")
-    ODDS_MIN = Decimal("0.50")  #ne mažiau kaip 0.50
-    ODDS_MAX = Decimal("10.00")  #ir ne daugiau kaip 10.00
-
     def _q2(x) -> Decimal:
         return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
@@ -251,7 +264,7 @@ def register_matches_routes(app, db):
         den = games + 2 * SMOOTH_ALPHA
         return float(num / den) if den > 0 else 0.5
 
-    def _rating_prob(team1: str, team2: str) -> float:
+    def _rating_prob(team1: str, team2: str, sport: str) -> float:
         """
         Tikimybė pagal rating skirtumą (Bradley–Terry / Elo logit).
         """
@@ -259,8 +272,8 @@ def register_matches_routes(app, db):
         t1 = TEAMS.find_one({"teamName": team1, "sport": sport}) or {}
         t2 = TEAMS.find_one({"teamName": team2, "sport": sport}) or {}
 
-        r1 = float(t1.get("rating", DEFAULT_RATING))
-        r2 = float(t2.get("rating", DEFAULT_RATING))
+        r1 = _get_rating(t1)
+        r2 = _get_rating(t2)
 
         diff = r1 - r2
         return 1.0 / (1.0 + 10.0 ** (-diff / LOGISTIC_SCALE))
@@ -275,7 +288,7 @@ def register_matches_routes(app, db):
         else:
             f1 = f2 = 0.5
 
-        pr1 = _rating_prob(team1, team2)  # NAUDOJA TEISINGĄ RATING lookup
+        pr1 = _rating_prob(team1, team2, sport)  # NAUDOJA TEISINGĄ RATING lookup
         p1 = FORM_WEIGHT * f1 + (1.0 - FORM_WEIGHT) * pr1
 
         p1 = max(0.001, min(0.999, p1))
