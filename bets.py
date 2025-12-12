@@ -358,8 +358,7 @@ def register_bets_routes(app, db):
     # ---------- CREATE ----------
     VALID_STATUSES = {"pending", "won", "lost"}
 
-
-    #Bet relationships creation function for neo4j database
+    # Bet relationships creation function for neo4j database
     def create_bet_relationships(user_email, bet_id, match_id, match_sport=None, team_id=None, team_name=None):
         """Create Neo4j nodes and relationships for a newly placed bet."""
         with neo4j_driver.session(database="neo4j") as session:
@@ -408,6 +407,15 @@ def register_bets_routes(app, db):
                     "MERGE (b)-[:ON_TEAM]->(t)",
                     {"bet_id": str(bet_id), "team_id": team_id}
                 )
+
+    # Bet relationships delete for neo4j database
+    def delete_bet_relationships(bet_id):
+        """Delete the Bet node and all its relationships from Neo4j."""
+        with neo4j_driver.session(database="neo4j") as session:
+            session.run(
+                "MATCH (b:Bet {id: $bet_id}) DETACH DELETE b",
+                {"bet_id": str(bet_id)}
+            )
 
     @app.post("/bets")
     def create_bet():
@@ -467,11 +475,12 @@ def register_bets_routes(app, db):
             if choice == "score":
                 score = bet.get("score") or {}
                 try:
-                    s1 = int(score.get("team_1"));
+                    s1 = int(score.get("team_1"))
                     s2 = int(score.get("team_2"))
                 except Exception:
                     return jsonify({
-                                       "message": "For choice='score' you must provide an integer score.team_1 and score.team_2"}), 400
+                        "message": "For choice='score' you must provide an integer score.team_1 and score.team_2"
+                    }), 400
                 if s1 < 0 or s2 < 0:
                     return jsonify({"message": "score values must be >= 0"}), 400
 
@@ -527,7 +536,8 @@ def register_bets_routes(app, db):
                     })
                 if BETS.find_one({"$or": dup_query_or}):
                     return jsonify({
-                                       "message": "Duplicate bet: you have already placed this type of bet for these teams on this date."}), 400
+                        "message": "Duplicate bet: you have already placed this type of bet for these teams on this date."
+                    }), 400
 
                 # --- paruošta data saugojimui ---
                 stored_event_date = _storage_date(event_date_raw, event_dt)
@@ -577,20 +587,26 @@ def register_bets_routes(app, db):
                 team_id = pick_team if choice == "winner" else None
                 team_name = pick_team if choice == "winner" else None
 
-                create_bet_relationships(
-                    user_email=user_email,
-                    bet_id=str(res.inserted_id),
-                    match_id=match_id,
-                    match_sport=match_sport,
-                    team_id=team_id,
-                    team_name=team_name
-                )
+                # ---------- NEO4J: DABAR APSAUGOTA ----------
+                try:
+                    create_bet_relationships(
+                        user_email=user_email,
+                        bet_id=str(res.inserted_id),
+                        match_id=match_id,
+                        match_sport=match_sport,
+                        team_id=team_id,
+                        team_name=team_name
+                    )
+                except Exception as e:
+                    app.logger.error(f"Neo4j error (create bet relationships): {e}")
+                    # Svarbu: nekeliam exception, kad /bets vis tiek grąžintų 201, jei Mongo + ES OK.
 
                 invalidate_pattern("bets:list:*")
                 invalidate_pattern(f"bets_by_email:{user_email}:*")
                 invalidate("bets_summary")
 
                 new_bet = BETS.find_one({"_id": res.inserted_id})
+
                 # ---------- SYNC TO ELASTICSEARCH: bets_analytics ----------
                 try:
                     es.index(
@@ -604,18 +620,9 @@ def register_bets_routes(app, db):
                 return jsonify({"message": "Bet added successfully.", "bet": ser(new_bet)}), 201
 
             finally:
-
                 release_lock(lock_name)
         except Exception as e:
             return jsonify({"message": "Failed to add bet.", "error": str(e)}), 400
-
-    def delete_bet_relationships(bet_id):
-        """Delete the Bet node and all its relationships from Neo4j."""
-        with neo4j_driver.session(database="neo4j") as session:
-            session.run(
-                "MATCH (b:Bet {id: $bet_id}) DETACH DELETE b",
-                {"bet_id": str(bet_id)}
-            )
 
     # ---------- DELETE ----------
     @app.delete("/bets/<id>")
@@ -634,7 +641,12 @@ def register_bets_routes(app, db):
         if not res.deleted_count:
             return jsonify({"error": "Not found"}), 404
 
-        delete_bet_relationships(str(oid))
+        # ---- Neo4j delete (nebenužudo request'o, jei neveikia) ----
+        try:
+            delete_bet_relationships(str(oid))
+        except Exception as e:
+            app.logger.error(f"Neo4j error (delete bet relationships): {e}")
+
         # ---- ES delete ----
         try:
             es.delete(index="bets_analytics", id=str(oid))

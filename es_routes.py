@@ -291,7 +291,6 @@ def register_es_routes(app):
             filt.append({"range": {"date": range_q}})
 
         if not must and not filt:
-            # ничего не задано – вернём пустой ответ
             return jsonify({"total": 0, "items": []}), 200
 
         query = {"bool": {}}
