@@ -26,18 +26,31 @@ MATCHES_MAPPING = {
 BETS_MAPPING = {
     "mappings": {
         "properties": {
-            "bet_id": {"type": "keyword"},
-            "user": {"type": "keyword"},
-            "team": {"type": "keyword"},
-            "match_id": {"type": "keyword"},
-            "status": {"type": "keyword"},
-            "stake": {"type": "float"},
-            "odds": {"type": "float"},
-            "sport": {"type": "keyword"},
-            "createdAt": {"type": "date"}
+            "bet_id":      {"type": "keyword"},
+            "user":        {"type": "keyword"},
+            "team":        {"type": "keyword"},
+            "match_id":    {"type": "keyword"},
+            "status":      {"type": "keyword"},
+            "isWin":       {"type": "boolean"},
+
+            "stake":       {"type": "float"},
+            "odds":        {"type": "float"},
+            "payout":      {"type": "float"},
+            "companyOwed": {"type": "float"},
+
+            "sport":       {"type": "keyword"},
+
+            # svarbiausia: matchDate kaip date su formatu yyyy-MM-dd
+            "matchDate":   {"type": "date", "format": "yyyy-MM-dd"},
+            "createdAt":   {"type": "date"},
+
+            # optional, bet naudinga "per match" vaizdui
+            "team1":       {"type": "keyword"},
+            "team2":       {"type": "keyword"},
         }
     }
 }
+
 from bson.decimal128 import Decimal128
 
 def to_float_odds(value):
@@ -102,68 +115,58 @@ def build_es_match_doc(doc, teams_collection):
 
 
 
+COMMISSION = 0.8
+
 def build_es_bet_doc(bet_doc, matches_collection):
-    """
-    Konstruojam analitinį bet dokumentą `bets_analytics` indeksui.
-    Pasiimam sport ir odds iš Matches, payout suskaičiuojam čia.
-    """
     from bson.decimal128 import Decimal128
-    from decimal import Decimal
+    from datetime import datetime
 
     def to_float(val):
         if isinstance(val, Decimal128):
             return float(val.to_decimal())
-        if isinstance(val, Decimal):
-            return float(val)
         try:
             return float(val)
         except Exception:
             return None
 
+    def to_iso(dt):
+        return dt.isoformat() if isinstance(dt, datetime) else None
+
+    def to_match_date(val):
+        if isinstance(val, datetime):
+            return val.strftime("%Y-%m-%d")
+        if isinstance(val, str):
+            return val.split("T")[0]
+        return None
+
     bet_id = str(bet_doc["_id"])
     status = bet_doc.get("status")
-    bet_block = bet_doc.get("bet", {}) or {}
-    event = bet_doc.get("event", {}) or {}
+    event = bet_doc.get("event") or {}
+    bet_block = bet_doc.get("bet") or {}
 
-    stake = to_float(bet_block.get("stake"))
-    created_at = bet_doc.get("createdAt") or bet_block.get("createdAt")
-
+    stake = to_float(bet_block.get("stake")) or 0.0
     team1 = event.get("team_1")
     team2 = event.get("team_2")
-    raw_date = event.get("date")
+    event_match_date = to_match_date(event.get("date"))
 
-    # normalizuojam datą į YYYY-MM-DD
-    if isinstance(raw_date, str):
-        if "T" in raw_date:
-            normalized_date = raw_date.split("T")[0]
-        else:
-            normalized_date = raw_date
-    else:
-        try:
-            normalized_date = raw_date.strftime("%Y-%m-%d")
-        except Exception:
-            normalized_date = None
-
-    # randam match Mongoje
     match_doc = matches_collection.find_one({
         "$or": [
-            {"team1.name": team1, "team2.name": team2, "date": normalized_date},
-            {"team1.name": team2, "team2.name": team1, "date": normalized_date},
+            {"team1.name": team1, "team2.name": team2, "date": event_match_date},
+            {"team1.name": team2, "team2.name": team1, "date": event_match_date},
         ]
     })
 
     match_id = str(match_doc["_id"]) if match_doc else None
     sport = match_doc.get("sport") if match_doc else None
     odds = to_float(match_doc.get("odds")) if match_doc else None
+    match_date = match_doc.get("date") if match_doc else event_match_date
 
     is_win = (status == "won")
-    payout = (stake or 0.0) * odds if (is_win and odds is not None) else 0.0
+    payout = (stake * odds) if (is_win and odds is not None) else 0.0
+    company_owed = (payout * COMMISSION) if is_win else 0.0
 
-    from datetime import datetime
-    if isinstance(created_at, datetime):
-        created_iso = created_at.isoformat()
-    else:
-        created_iso = str(created_at) if created_at else None
+    created_at = bet_doc.get("createdAt") or bet_block.get("createdAt")
+    created_iso = to_iso(created_at)
 
     return {
         "bet_id": bet_id,
@@ -175,9 +178,14 @@ def build_es_bet_doc(bet_doc, matches_collection):
         "stake": stake,
         "odds": odds,
         "payout": payout,
+        "companyOwed": company_owed,
         "sport": sport,
+        "matchDate": match_date,
         "createdAt": created_iso,
+        "team1": (match_doc.get("team1") or {}).get("name") if match_doc else team1,
+        "team2": (match_doc.get("team2") or {}).get("name") if match_doc else team2,
     }
+
 
 # ------------------------------------------
 # Create indexes
@@ -383,6 +391,8 @@ def register_es_routes(app):
 
         return jsonify({"status": "ok", "indexed": count}), 200
 
+    COMMISSION = 0.8
+
     @app.post("/es/sync/bets")
     def sync_all_bets():
         BETS = app.db.Bets
@@ -392,78 +402,90 @@ def register_es_routes(app):
         count = 0
 
         from bson.decimal128 import Decimal128
+        from datetime import datetime
 
         def to_float(val):
             if isinstance(val, Decimal128):
                 return float(val.to_decimal())
-            if isinstance(val, dict):
-                return None
             try:
                 return float(val)
-            except:
+            except Exception:
                 return None
+
+        def to_iso(dt):
+            return dt.isoformat() if isinstance(dt, datetime) else None
+
+        def to_match_date(val):
+            # norim YYYY-MM-DD string
+            if isinstance(val, datetime):
+                return val.strftime("%Y-%m-%d")
+            if isinstance(val, str):
+                # jei būtų su T - nusikirptų, bet pas tave matches.date yra tik YYYY-MM-DD
+                return val.split("T")[0]
+            return None
 
         for doc in cursor:
             bet_id = str(doc["_id"])
             user = doc.get("userEmail")
             status = doc.get("status")
 
-            # createdAt (in bet or top-level)
-            created_at = doc.get("createdAt") or doc.get("bet", {}).get("createdAt")
-
-            # stake - correct Decimal128 handling
-            stake = to_float(doc.get("bet", {}).get("stake"))
-
-            # team - only for winner
-            choice = doc.get("bet", {}).get("choice")
-            team = doc.get("bet", {}).get("team") if choice == "winner" else None
+            # stake
+            stake = to_float((doc.get("bet") or {}).get("stake")) or 0.0
 
             # event info
-            event = doc.get("event", {})
+            event = doc.get("event") or {}
             team1 = event.get("team_1")
             team2 = event.get("team_2")
 
-            # ---- FIX DATE MATCH ----
-            raw_date = event.get("date")
+            # match date iš bet.event.date (datetime) -> YYYY-MM-DD
+            event_match_date = to_match_date(event.get("date"))
 
-            # if ISO -> convert to YYYY-MM-DD
-            if isinstance(raw_date, str):
-                if "T" in raw_date:
-                    normalized_date = raw_date.split("T")[0]
-                else:
-                    normalized_date = raw_date
-            else:
-                # Mongo datetime → convert to string
-                try:
-                    normalized_date = raw_date.strftime("%Y-%m-%d")
-                except:
-                    normalized_date = None
-
-            # find match in Mongo
+            # randam match doc
             match_doc = MATCHES.find_one({
                 "$or": [
-                    {"team1.name": team1, "team2.name": team2, "date": normalized_date},
-                    {"team1.name": team2, "team2.name": team1, "date": normalized_date}
+                    {"team1.name": team1, "team2.name": team2, "date": event_match_date},
+                    {"team1.name": team2, "team2.name": team1, "date": event_match_date},
                 ]
             })
 
             match_id = str(match_doc["_id"]) if match_doc else None
             sport = match_doc.get("sport") if match_doc else None
 
-            # odds - from match
+            # odds iš match
             odds = to_float(match_doc.get("odds")) if match_doc else None
 
-            # final ES document
+            # matchDate – imk iš match_doc.date (pas tave string YYYY-MM-DD)
+            match_date = match_doc.get("date") if match_doc else event_match_date  # fallback jei match nerasta
+
+            # company owed
+            is_win = (status == "won")
+            payout = (stake * odds) if (is_win and odds is not None) else 0.0
+            company_owed = (payout * COMMISSION) if is_win else 0.0
+
+            # createdAt – normalizuojam
+            created_at = doc.get("createdAt") or (doc.get("bet") or {}).get("createdAt")
+            created_at_iso = to_iso(created_at)
+
             body = {
                 "bet_id": bet_id,
                 "user": user,
-                "team": team,
                 "match_id": match_id,
                 "status": status,
+                "isWin": is_win,
+
                 "stake": stake,
                 "odds": odds,
+                "payout": payout,
+                "companyOwed": company_owed,
+
                 "sport": sport,
-                "createdAt": created_at
+
+                "matchDate": match_date,  # <— SVARBIAUSIA daily revenue
+                "createdAt": created_at_iso,
+
+                # optional: kad gražiai rodyt per match
+                "team1": match_doc.get("team1", {}).get("name") if match_doc else team1,
+                "team2": match_doc.get("team2", {}).get("name") if match_doc else team2,
             }
 
             es.index(index="bets_analytics", id=bet_id, document=body)
@@ -473,59 +495,76 @@ def register_es_routes(app):
 
     @app.get("/reports/daily-revenue")
     def daily_revenue():
-        """
-        Finansinė analitika: pajamos per dieną.
-        Gražina masyvą, kur kiekvienai dienai:
-        - date
-        - total_stake
-        - total_payout
-        - bet_count
-        """
-        date_from = request.args.get("from")  # YYYY-MM-DD
-        date_to = request.args.get("to")  # YYYY-MM-DD
+        date_from = request.args.get("from")
+        date_to = request.args.get("to")
 
-        # Range ant createdAt
+        filt = [{"exists": {"field": "matchDate"}}, {"exists": {"field": "match_id"}}]
+
         if date_from or date_to:
             range_q = {}
-            if date_from:
-                range_q["gte"] = f"{date_from}T00:00:00Z"
-            if date_to:
-                range_q["lte"] = f"{date_to}T23:59:59Z"
-            query = {"range": {"createdAt": range_q}}
-        else:
-            query = {"match_all": {}}
+            if date_from: range_q["gte"] = date_from
+            if date_to:   range_q["lte"] = date_to
+            filt.append({"range": {"matchDate": range_q}})
+
+        query = {"bool": {"filter": filt}}
 
         aggs = {
             "per_day": {
                 "date_histogram": {
-                    "field": "createdAt",
+                    "field": "matchDate",
                     "calendar_interval": "day",
                     "format": "yyyy-MM-dd",
-                    "min_doc_count": 0
+                    "min_doc_count": 1
                 },
                 "aggs": {
                     "total_stake": {"sum": {"field": "stake"}},
-                    "total_payout": {"sum": {"field": "payout"}},
-                    "bet_count": {"value_count": {"field": "bet_id"}}
+                    "total_owed": {"sum": {"field": "companyOwed"}},
+                    "bet_count": {"value_count": {"field": "bet_id"}},
+
+                    "by_match": {
+                        "terms": {"field": "match_id", "size": 1000},
+                        "aggs": {
+                            "stake": {"sum": {"field": "stake"}},
+                            "owed": {"sum": {"field": "companyOwed"}},
+                            "bet_count": {"value_count": {"field": "bet_id"}},
+                            "sample": {"top_hits": {"size": 1, "_source": ["team1", "team2", "sport", "matchDate"]}}
+                        }
+                    }
                 }
             }
         }
 
-        res = es.search(
-            index=BETS_INDEX,
-            query=query,
-            aggs=aggs,
-            size=0
-        )
+        res = es.search(index=BETS_INDEX, query=query, aggs=aggs, size=0)
 
-        buckets = res["aggregations"]["per_day"]["buckets"]
         items = []
-        for b in buckets:
+        for day in res["aggregations"]["per_day"]["buckets"]:
+            day_stake = day["total_stake"]["value"] or 0.0
+            day_owed = day["total_owed"]["value"] or 0.0
+
+            matches = []
+            for m in day["by_match"]["buckets"]:
+                m_stake = m["stake"]["value"] or 0.0
+                m_owed = m["owed"]["value"] or 0.0
+                src = (m["sample"]["hits"]["hits"][0]["_source"] if m["sample"]["hits"]["hits"] else {})
+
+                matches.append({
+                    "match_id": m["key"],
+                    "team1": src.get("team1"),
+                    "team2": src.get("team2"),
+                    "sport": src.get("sport"),
+                    "total_stake": m_stake,
+                    "total_owed": m_owed,
+                    "revenue": m_stake - m_owed,
+                    "bet_count": m["bet_count"]["value"],
+                })
+
             items.append({
-                "date": b["key_as_string"],
-                "total_stake": b["total_stake"]["value"],
-                "total_payout": b["total_payout"]["value"],
-                "bet_count": b["bet_count"]["value"],
+                "date": day["key_as_string"],
+                "total_stake": day_stake,
+                "total_owed": day_owed,
+                "revenue": day_stake - day_owed,
+                "bet_count": day["bet_count"]["value"],
+                "matches": matches
             })
 
         return jsonify(items), 200
@@ -546,9 +585,9 @@ def register_es_routes(app):
         if date_from or date_to:
             range_q = {}
             if date_from:
-                range_q["gte"] = f"{date_from}T00:00:00Z"
+                range_q["gte"] = f"{date_from}T00:00:00"
             if date_to:
-                range_q["lte"] = f"{date_to}T23:59:59Z"
+                range_q["lte"] = f"{date_to}T23:59:59"
             base_filter.append({"range": {"createdAt": range_q}})
 
         if base_filter:
@@ -560,11 +599,12 @@ def register_es_routes(app):
             "by_sport": {
                 "terms": {
                     "field": "sport",
-                    "size": 20
+                    "size": 20,
+                    "order": {"bet_count": "desc"}  # Rūšiavimas pagal statymų kiekį
                 },
                 "aggs": {
                     "total_stake": {"sum": {"field": "stake"}},
-                    "total_payout": {"sum": {"field": "payout"}},
+                    "total_owed": {"sum": {"field": "companyOwed"}},  # Naudojame companyOwed
                     "bet_count": {"value_count": {"field": "bet_id"}}
                 }
             }
@@ -577,15 +617,18 @@ def register_es_routes(app):
             size=0
         )
 
+        # Surenkame rezultatus
         buckets = res["aggregations"]["by_sport"]["buckets"]
         items = []
         for b in buckets:
+            stake = b["total_stake"]["value"] or 0.0
+            owed = b["total_owed"]["value"] or 0.0
             items.append({
                 "sport": b["key"],
                 "bet_count": b["bet_count"]["value"],
-                "total_stake": b["total_stake"]["value"],
-                "total_payout": b["total_payout"]["value"],
+                "total_stake": stake,
+                "total_owed": owed,
+                "revenue": stake - owed  # Apskaičiuojame revenue
             })
 
         return jsonify(items), 200
-

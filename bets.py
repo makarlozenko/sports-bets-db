@@ -23,17 +23,14 @@ from bson.decimal128 import Decimal128
 from decimal import Decimal
 
 # ...
+COMMISSION = 0.8
 
-def es_bet_body(bet_doc, match_sport):
-    """
-    Paruošiam analitinį dokumentą Elasticsearch `bets_analytics` indeksui.
-    Čia apskaičiuojamas payout ir isWin, kad vėliau analitika būtų paprasta.
-    """
+def es_bet_body(bet_doc, match_sport, match_doc=None):
     bet_id = str(bet_doc["_id"])
     status = bet_doc.get("status")
     bet_block = bet_doc.get("bet", {}) or {}
 
-    # stake kaip float
+    # stake -> float
     raw_stake = bet_block.get("stake", 0)
     if isinstance(raw_stake, Decimal128):
         stake = float(raw_stake.to_decimal())
@@ -45,37 +42,57 @@ def es_bet_body(bet_doc, match_sport):
         except Exception:
             stake = 0.0
 
-    # odds – jei yra
-    raw_odds = bet_block.get("odds")
-    try:
-        odds = float(raw_odds) if raw_odds is not None else None
-    except Exception:
-        odds = None
+    # odds -> iš MATCH (nes betuose jų neturi)
+    odds = None
+    if match_doc:
+        raw_odds = match_doc.get("odds")
+        if isinstance(raw_odds, Decimal128):
+            odds = float(raw_odds.to_decimal())
+        else:
+            try:
+                odds = float(raw_odds)
+            except Exception:
+                odds = None
 
     is_win = (status == "won")
     payout = stake * odds if (is_win and odds is not None) else 0.0
+    company_owed = payout * COMMISSION if is_win else 0.0
+
+    # matchDate (YYYY-MM-DD)
+    match_date = None
+    if match_doc and match_doc.get("date"):
+        match_date = match_doc.get("date")  # pas tave matches.date jau "YYYY-MM-DD"
+    else:
+        raw = (bet_doc.get("event") or {}).get("date")
+        if isinstance(raw, datetime):
+            match_date = raw.strftime("%Y-%m-%d")
+        elif isinstance(raw, str):
+            match_date = raw.split("T")[0]
 
     created_at = bet_doc.get("createdAt")
-    if isinstance(created_at, datetime):
-        created_at_iso = created_at.isoformat()
-    else:
-        created_at_iso = None
+    created_at_iso = created_at.isoformat() if isinstance(created_at, datetime) else None
 
     return {
         "bet_id": bet_id,
         "user": bet_doc.get("userEmail"),
-        "team": bet_block.get("team"),
-        "match_id": str(bet_doc.get("match_id")) if bet_doc.get("match_id") else None,
+        "team": bet_block.get("team") if bet_block.get("choice") == "winner" else None,
+        "match_id": str(match_doc["_id"]) if match_doc else None,
+
         "status": status,
         "isWin": is_win,
+
         "stake": stake,
         "odds": odds,
         "payout": payout,
+        "companyOwed": company_owed,
+
         "sport": match_sport,
+        "matchDate": match_date,
         "createdAt": created_at_iso,
+
+        "team1": (match_doc.get("team1") or {}).get("name") if match_doc else None,
+        "team2": (match_doc.get("team2") or {}).get("name") if match_doc else None,
     }
-
-
 
 def register_bets_routes(app, db):
     BETS = db.Bets
@@ -612,7 +629,7 @@ def register_bets_routes(app, db):
                     es.index(
                         index="bets_analytics",
                         id=str(res.inserted_id),
-                        document=es_bet_body(new_bet, match_sport)
+                        document=es_bet_body(new_bet, match_sport, match_doc=match_doc)
                     )
                 except Exception as e:
                     app.logger.error(f"ES sync error (create bet): {e}")
@@ -813,14 +830,33 @@ def register_bets_routes(app, db):
 
         # ---- Update in Elasticsearch ----
         updated_bet = BETS.find_one({"_id": oid})
-        match_doc = MATCHES.find_one({"team1.name": updated_bet["event"]["team_1"]})  # quick lookup
+
+        event = (updated_bet.get("event") or {})
+        t1 = event.get("team_1")
+        t2 = event.get("team_2")
+        raw = event.get("date")
+
+        if isinstance(raw, datetime):
+            d = raw.strftime("%Y-%m-%d")
+        elif isinstance(raw, str):
+            d = raw.split("T")[0]
+        else:
+            d = None
+
+        match_doc = MATCHES.find_one({
+            "$or": [
+                {"team1.name": t1, "team2.name": t2, "date": d},
+                {"team1.name": t2, "team2.name": t1, "date": d},
+            ]
+        })
+
         match_sport = match_doc.get("sport") if match_doc else None
 
         try:
             es.index(
                 index="bets_analytics",
                 id=str(oid),
-                document=es_bet_body(updated_bet, match_sport)
+                document=es_bet_body(updated_bet, match_sport, match_doc=match_doc)
             )
         except Exception as e:
             app.logger.error(f"ES sync error (update status): {e}")

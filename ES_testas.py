@@ -5,31 +5,27 @@ import json
 
 BASE = "http://127.0.0.1:5000"
 
-
 # ================================================================
 # HELPERIAI
 # ================================================================
-def wait():
-    time.sleep(0.4)
-
+def wait(sec=0.6):
+    time.sleep(sec)
 
 def pretty(x):
     return json.dumps(x, indent=4, ensure_ascii=False)
 
-
-def post(path, json=None):
+def post(path, json_body=None):
     print(f"\n=== POST {path} ===")
-    if json is not None:
+    if json_body is not None:
         print("Request JSON:")
-        print(pretty(json))
-    r = requests.post(BASE + path, json=json)
+        print(pretty(json_body))
+    r = requests.post(BASE + path, json=json_body)
     print("Response:", r.status_code)
     try:
         print(pretty(r.json()))
     except Exception:
         print(r.text)
     return r
-
 
 def get(path, params=None):
     print(f"\n=== GET {path} ===")
@@ -43,7 +39,6 @@ def get(path, params=None):
         print(r.text)
     return r
 
-
 def delete(path):
     print(f"\n=== DELETE {path} ===")
     r = requests.delete(BASE + path)
@@ -54,9 +49,20 @@ def delete(path):
         print(r.text)
     return r
 
+def extract_bet_id(resp):
+    """
+    Tavo /bets create grąžina {"message": "...", "bet": {...}}
+    _id būna bet objekte: body["bet"]["_id"]
+    """
+    try:
+        body = resp.json()
+    except Exception:
+        return None
+    bet_obj = body.get("bet") or {}
+    return bet_obj.get("_id")
 
 # ================================================================
-# TESTINIŲ DUOMENŲ STATYMAS
+# TESTINIAI BETAI (PASTABA: odds backend’e imami iš Matches, ne iš bet)
 # ================================================================
 bet1_data = {
     "userId": "20ba1f0e3b20a2c5dcce32d6",
@@ -69,15 +75,10 @@ bet1_data = {
     },
     "bet": {
         "choice": "score",
-        "score": {
-            "team_1": 90,
-            "team_2": 75
-        },
-        "odds": 2.0,
+        "score": {"team_1": 90, "team_2": 75},
         "stake": 10.0
     }
 }
-
 
 bet2_data = {
     "userId": "20ba1f0e3b20a2c5dcce32d6",
@@ -90,15 +91,10 @@ bet2_data = {
     },
     "bet": {
         "choice": "score",
-        "score": {
-            "team_1": 90,
-            "team_2": 75
-        },
-        "odds": 2.0,
+        "score": {"team_1": 90, "team_2": 75},
         "stake": 10.0
     }
 }
-
 
 # ================================================================
 # TEST 01: ES RESET + SYNC
@@ -108,20 +104,16 @@ def test_reset_and_sync():
     print("TEST 01: RESET + SYNC MATCHES/BETS")
     print("==============================")
 
-    # Reset ES (ištrina ir sukuria indeksus iš naujo)
     post("/es/reset")
-    time.sleep(3)
+    wait(3)
 
-    # Sync matches iš DB į ES
     post("/es/sync/matches")
-    time.sleep(5)
+    wait(4)
 
-    # Sync bets iš DB į ES
     post("/es/sync/bets")
-    time.sleep(5)
+    wait(4)
 
     print("\n✓ ES reset + pilna sinchronizacija atlikta.\n")
-
 
 # ================================================================
 # TEST 02: SEARCH (MATCHES / TEAMS)
@@ -138,16 +130,12 @@ def test_search():
     get("/search/matches", params={"sport": "football"})
 
     print("\n--- Search pagal datų intervalą ---")
-    get("/search/matches", params={
-        "from": "2025-09-01",
-        "to":   "2025-11-30"
-    })
+    get("/search/matches", params={"from": "2025-09-01", "to": "2025-11-30"})
 
     print("\n--- Autocomplete teams ---")
     get("/search/teams", params={"q": "Vi"})
 
     print("\n✓ Visi search endpointai patikrinti.\n")
-
 
 # ================================================================
 # TEST 03: ANALYTICS (BETS)
@@ -157,94 +145,80 @@ def test_analytics():
     print("TEST 03: ANALYTICS ENDPOINTAI")
     print("==============================")
 
-    print("\n--- Daily revenue ---")
-    get("/reports/daily-revenue", params={
-        "from": "2025-09-01",
-        "to":   "2025-12-12"
-    })
+    # Daily revenue pas tave dabar yra pagal matchDate, todėl duodam intervalą,
+    # kuris apima ir 2025-08-15, ir 2025-08-29, ir pan.
+    print("\n--- Daily revenue (pagal matchDate) ---")
+    get("/reports/daily-revenue", params={"from": "2025-08-01", "to": "2025-12-12"})
 
     print("\n--- Sport popularity ---")
     get("/reports/sport-popularity")
 
     print("\n✓ Analitiniai endpointai patikrinti.\n")
 
-
 # ================================================================
-# TEST 04: PILNAS DEMO FLOW BŪTENT BETAMS
+# TEST 04: PILNAS DEMO FLOW (BETS)
 # ================================================================
 def test_bets_reindex_flow():
     print("\n==============================")
     print("TEST 04: BETS FLOW (INIT → CREATE → ANALYTICS → REINDEX → ANALYTICS → CLEANUP)")
     print("==============================")
 
-    # 1. Inicializuojam indeksus (kaip tavo plane)
+    # 1. Inicializuojam indeksus
     print("\n--- 1. ES indeksų inicializacija (/es/init) ---")
     post("/es/init")
-    time.sleep(2)
+    wait(2)
 
     # 2. Sukuriam testinius statymus
     print("\n--- 2. Sukuriam testinius statymus (/bets) ---")
     created_bet_ids = []
 
-    r1 = post("/bets", json=bet1_data)
-    bet1_id = None
-    try:
-        body1 = r1.json()
-        bet1_id = body1.get("_id") or body1.get("id")
-    except Exception:
-        pass
+    r1 = post("/bets", json_body=bet1_data)
+    bet1_id = extract_bet_id(r1)
     if bet1_id:
         created_bet_ids.append(bet1_id)
+    else:
+        print("(!) bet1 nebuvo sukurtas (gal duplicate / insufficient balance).")
 
-    time.sleep(4)
+    wait(2)
 
-    r2 = post("/bets", json=bet2_data)
-    bet2_id = None
-    try:
-        body2 = r2.json()
-        bet2_id = body2.get("_id") or body2.get("id")
-    except Exception:
-        pass
+    r2 = post("/bets", json_body=bet2_data)
+    bet2_id = extract_bet_id(r2)
     if bet2_id:
         created_bet_ids.append(bet2_id)
+    else:
+        print("(!) bet2 nebuvo sukurtas (gal duplicate / insufficient balance).")
 
-    time.sleep(4)
-
+    # palaukiam, kad ES spėtų susiindeksuoti (create_bet daro es.index)
+    wait(3)
 
     # 3. Analitika PRIEŠ reindeksavimą
     print("\n--- 3. Analitika PRIEŠ reindex (/reports/...) ---")
     print("\n[Prieš reindex] Daily revenue:")
-    get("/reports/daily-revenue", params={
-        "from": "2025-09-01",
-        "to":   "2025-12-12"
-    })
+    get("/reports/daily-revenue", params={"from": "2025-08-01", "to": "2025-12-12"})
     print("\n[Prieš reindex] Sport popularity:")
     get("/reports/sport-popularity")
 
     # 4. Reindeksuojam bets indeksą
     print("\n--- 4. Reindeksavimas (/admin/reindex/bets) ---")
     post("/admin/reindex/bets")
-    time.sleep(5)
+    wait(4)
 
     # 5. Analitika PO reindeksavimo
     print("\n--- 5. Analitika PO reindex (/reports/...) ---")
     print("\n[Po reindex] Daily revenue:")
-    get("/reports/daily-revenue", params={
-        "from": "2025-09-01",
-        "to":   "2025-12-12"
-    })
+    get("/reports/daily-revenue", params={"from": "2025-08-01", "to": "2025-12-12"})
     print("\n[Po reindex] Sport popularity:")
     get("/reports/sport-popularity")
 
-    # 6. Testinių statymų išvalymas (kad neliktų šiukšlių DB)
+    # 6. Testinių statymų išvalymas
     print("\n--- 6. Testinių statymų išvalymas (DELETE /bets/{id}) ---")
+    if not created_bet_ids:
+        print("(!) Nėra ką trinti (nei vienas testinis betas nesusikūrė).")
     for bet_id in created_bet_ids:
-        if bet_id:
-            delete(f"/bets/{bet_id}")
-            time.sleep(4)
+        delete(f"/bets/{bet_id}")
+        wait(1.5)
 
     print("\n✓ Bets reindex demo pilnai įvykdytas.\n")
-
 
 # ================================================================
 # RUN TEST SUITE
@@ -252,17 +226,16 @@ def test_bets_reindex_flow():
 if __name__ == "__main__":
     print("\n=== ES SEARCH / ANALYTICS TESTŲ PALEIDIMAS ===")
 
-    # 1) parodai pilną reset + sync funkcionalumą
+    # 1) reset + sync (parodo kad ES pilnai užsipildo iš DB)
     test_reset_and_sync()
 
-    # 2) parodai search (matchai, komandos)
+    # 2) search endpointai
     test_search()
 
-    # 3) parodai analitiką (bendra)
+    # 3) analitika (bendras vaizdas)
     test_analytics()
 
-    # 4) pagrindinis demo dėstytojui – būtent bets indeksas:
-    #    init → sukurti statymus → analitika → reindex → analitika → ištrinti testinius statymus
+    # 4) demo flow: init → create → analytics → reindex → analytics → cleanup
     test_bets_reindex_flow()
 
-    print("\n=== TESTAVIMAS BAIGTAS SĖKMINGAI ===\n")
+    print("\n=== TESTAVIMAS BAIGTAS ===\n")
