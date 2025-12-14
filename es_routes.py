@@ -40,7 +40,7 @@ BETS_MAPPING = {
 
             "sport":       {"type": "keyword"},
 
-            # svarbiausia: matchDate kaip date su formatu yyyy-MM-dd
+            # matchDate kaip date su formatu yyyy-MM-dd
             "matchDate":   {"type": "date", "format": "yyyy-MM-dd"},
             "createdAt":   {"type": "date"},
 
@@ -89,13 +89,10 @@ def build_es_match_doc(doc, teams_collection):
             return None
 
         try:
-            # Если Decimal128 – сначала to_decimal()
             if isinstance(r, Decimal128):
                 r = r.to_decimal()
-            # Если Decimal – тоже нормально
             if isinstance(r, Decimal):
                 return float(r)
-            # Если уже float/int/строка – float сам разберётся
             return float(r)
         except Exception:
             return None
@@ -226,14 +223,14 @@ def register_es_routes(app):
         MATCHES = app.db.Matches
         TEAMS = app.db.Team
 
-        # 1) дропаем только индекс матчей
+        # 1) Pasalinam match indeksus
         if es.indices.exists(index=MATCHES_INDEX):
             es.indices.delete(index=MATCHES_INDEX)
 
-        # 2) создаём заново с mapping
+        # 2) Sukuriam iš naujo su mapping
         es.indices.create(index=MATCHES_INDEX, body=MATCHES_MAPPING)
 
-        # 3) заливаем все матчи
+        # 3) Uzpildom matches is mongo
         count = 0
         for doc in MATCHES.find({}):
             body = build_es_match_doc(doc, TEAMS)
@@ -250,14 +247,14 @@ def register_es_routes(app):
         BETS = app.db.Bets
         MATCHES = app.db.Matches
 
-        # 1) Dropinam bets_analytics indeksą
+        # 1) Pasalinam bets_analytics indeksus
         if es.indices.exists(index=BETS_INDEX):
             es.indices.delete(index=BETS_INDEX)
 
         # 2) Sukuriam iš naujo su mapping
         es.indices.create(index=BETS_INDEX, body=BETS_MAPPING)
 
-        # 3) Užpildom iš Mongo.Bets
+        # 3) Užpildom bets is mongo
         count = 0
         for bet_doc in BETS.find({}):
             body = build_es_bet_doc(bet_doc, MATCHES)
@@ -416,11 +413,10 @@ def register_es_routes(app):
             return dt.isoformat() if isinstance(dt, datetime) else None
 
         def to_match_date(val):
-            # norim YYYY-MM-DD string
+            # YYYY-MM-DD string
             if isinstance(val, datetime):
                 return val.strftime("%Y-%m-%d")
             if isinstance(val, str):
-                # jei būtų su T - nusikirptų, bet pas tave matches.date yra tik YYYY-MM-DD
                 return val.split("T")[0]
             return None
 
@@ -454,8 +450,8 @@ def register_es_routes(app):
             # odds iš match
             odds = to_float(match_doc.get("odds")) if match_doc else None
 
-            # matchDate – imk iš match_doc.date (pas tave string YYYY-MM-DD)
-            match_date = match_doc.get("date") if match_doc else event_match_date  # fallback jei match nerasta
+            # matchDate
+            match_date = match_doc.get("date") if match_doc else event_match_date  # fallback jei match nerastas
 
             # company owed
             is_win = (status == "won")
@@ -480,7 +476,7 @@ def register_es_routes(app):
 
                 "sport": sport,
 
-                "matchDate": match_date,  # <— SVARBIAUSIA daily revenue
+                "matchDate": match_date,  # <— daily revenue
                 "createdAt": created_at_iso,
 
                 # optional: kad gražiai rodyt per match

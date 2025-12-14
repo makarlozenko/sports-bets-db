@@ -658,7 +658,7 @@ def register_bets_routes(app, db):
         if not res.deleted_count:
             return jsonify({"error": "Not found"}), 404
 
-        # ---- Neo4j delete (nebenužudo request'o, jei neveikia) ----
+        # ---- Neo4j delete  ----
         try:
             delete_bet_relationships(str(oid))
         except Exception as e:
@@ -706,7 +706,7 @@ def register_bets_routes(app, db):
                     }
                 }},
 
-                # SVARBU: from = "Matches"
+                # from = "Matches"
                 {"$lookup": {
                     "from": "Matches",
                     "let": {"d": "$betDateStr", "t1l": "$t1l", "t2l": "$t2l", "typel": "$typel"},

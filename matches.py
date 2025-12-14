@@ -212,7 +212,7 @@ def register_matches_routes(app, db):
             total = MATCHES.count_documents(query)
             cur = MATCHES.find(query).sort(sort_by, order)
 
-            # NAUJA: rekursyviai serializuojame kiekvieną dokumentą
+            # rekursyviai serializuojame kiekvieną dokumentą
             items = [ser_mongo(doc) for doc in cur]
 
             result = {"items": items, "total": total}
@@ -268,7 +268,7 @@ def register_matches_routes(app, db):
         """
         Tikimybė pagal rating skirtumą (Bradley–Terry / Elo logit).
         """
-        # TEISINGAS MONGO LAUKAS: teamName + sport
+        # teamName + sport
         t1 = TEAMS.find_one({"teamName": team1, "sport": sport}) or {}
         t2 = TEAMS.find_one({"teamName": team2, "sport": sport}) or {}
 

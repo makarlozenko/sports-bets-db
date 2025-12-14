@@ -1,6 +1,5 @@
 from elasticsearch import Elasticsearch
 
-# Important: official 8.x client requires dict, not string
 es = Elasticsearch(
     hosts=[{"host": "localhost", "port": 9200, "scheme": "http"}],
     verify_certs=False

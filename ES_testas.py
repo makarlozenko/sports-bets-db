@@ -51,8 +51,8 @@ def delete(path):
 
 def extract_bet_id(resp):
     """
-    Tavo /bets create grąžina {"message": "...", "bet": {...}}
-    _id būna bet objekte: body["bet"]["_id"]
+    /bets create, gražina {"message": "...", "bet": {...}}
+    _id būna "bet" objekte: body["bet"]["_id"]
     """
     try:
         body = resp.json()
@@ -62,7 +62,7 @@ def extract_bet_id(resp):
     return bet_obj.get("_id")
 
 # ================================================================
-# TESTINIAI BETAI (PASTABA: odds backend’e imami iš Matches, ne iš bet)
+# TESTINIAI BETAI
 # ================================================================
 bet1_data = {
     "userId": "20ba1f0e3b20a2c5dcce32d6",
@@ -135,7 +135,7 @@ def test_search():
     print("\n--- Autocomplete teams ---")
     get("/search/teams", params={"q": "Vi"})
 
-    print("\n✓ Visi search endpointai patikrinti.\n")
+    print("\n Visi search endpointai patikrinti.\n")
 
 # ================================================================
 # TEST 03: ANALYTICS (BETS)
@@ -145,7 +145,7 @@ def test_analytics():
     print("TEST 03: ANALYTICS ENDPOINTAI")
     print("==============================")
 
-    # Daily revenue pas tave dabar yra pagal matchDate, todėl duodam intervalą,
+    # Daily revenue yra pagal matchDate, todėl duodam intervalą,
     # kuris apima ir 2025-08-15, ir 2025-08-29, ir pan.
     print("\n--- Daily revenue (pagal matchDate) ---")
     get("/reports/daily-revenue", params={"from": "2025-08-01", "to": "2025-12-12"})
@@ -218,10 +218,10 @@ def test_bets_reindex_flow():
         delete(f"/bets/{bet_id}")
         wait(1.5)
 
-    print("\n✓ Bets reindex demo pilnai įvykdytas.\n")
+    print("\n Bets reindex demo pilnai įvykdytas.\n")
 
 # ================================================================
-# RUN TEST SUITE
+# RUN TEST
 # ================================================================
 if __name__ == "__main__":
     print("\n=== ES SEARCH / ANALYTICS TESTŲ PALEIDIMAS ===")
