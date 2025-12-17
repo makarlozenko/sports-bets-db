@@ -136,6 +136,7 @@ def build_es_bet_doc(bet_doc, matches_collection):
             return val.split("T")[0]
         return None
 
+    #pagrindiniai betu laukai
     bet_id = str(bet_doc["_id"])
     status = bet_doc.get("status")
     event = bet_doc.get("event") or {}
@@ -146,6 +147,7 @@ def build_es_bet_doc(bet_doc, matches_collection):
     team2 = event.get("team_2")
     event_match_date = to_match_date(event.get("date"))
 
+    #randame match kolekcijoje, atsizvelgiame kad teams gali buti sukeistos vietomis
     match_doc = matches_collection.find_one({
         "$or": [
             {"team1.name": team1, "team2.name": team2, "date": event_match_date},
@@ -158,6 +160,7 @@ def build_es_bet_doc(bet_doc, matches_collection):
     odds = to_float(match_doc.get("odds")) if match_doc else None
     match_date = match_doc.get("date") if match_doc else event_match_date
 
+    #skaiciuojame laimejima ir payout, tik jei laimetas
     is_win = (status == "won")
     payout = (stake * odds) if (is_win and odds is not None) else 0.0
     company_owed = (payout * COMMISSION) if is_win else 0.0
@@ -204,7 +207,7 @@ def initialize_indexes():
 # ------------------------------------------
 # Reset indexes
 # ------------------------------------------
-
+#istrina visus indeksus ir grazina naujus, inicializuoja
 def reset_indexes():
 
     for idx in [MATCHES_INDEX, BETS_INDEX]:
@@ -218,6 +221,7 @@ def reset_indexes():
 # ------------------------------------------
 
 def register_es_routes(app):
+    #perindeksavimas
     @app.post("/admin/reindex/matches")
     def admin_reindex_matches():
         MATCHES = app.db.Matches
@@ -331,6 +335,7 @@ def register_es_routes(app):
         }), 200
 
     @app.get("/search/teams")
+    #autocomplete
     def search_teams():
         q = request.args.get("q", "").strip()
         if not q:
@@ -349,6 +354,7 @@ def register_es_routes(app):
         )
 
         q_lower = q.lower()
+        #kad nesikartotu
         suggestions = set()
 
         for hit in res["hits"]["hits"]:
@@ -363,17 +369,23 @@ def register_es_routes(app):
             "teams": sorted(suggestions)
         }), 200
 
+
     @app.post("/es/init")
+    #patikrina ar egzistuoja matches_search ir bets_analytics,
+    #jei kažkurio nėra sukuria su atitinkamu mapping.
     def es_init():
         result = initialize_indexes()
         return jsonify({"status": "ok", "indexes": result}), 200
 
     @app.post("/es/reset")
+    #jei indeksai egzistuoja ištrina juos,
+    #tada kviečia initialize_indexes() ir sukuria iš naujo su mapping.
     def es_reset():
         result = reset_indexes()
         return jsonify({"status": "reset_ok", "indexes": result}), 200
 
     @app.post("/es/sync/matches")
+    #užpildo / atnaujina matches_search indeksą
     def sync_all_matches():
         MATCHES = app.db.Matches
         TEAMS = app.db.Team
@@ -468,17 +480,13 @@ def register_es_routes(app):
                 "match_id": match_id,
                 "status": status,
                 "isWin": is_win,
-
                 "stake": stake,
                 "odds": odds,
                 "payout": payout,
                 "companyOwed": company_owed,
-
                 "sport": sport,
-
-                "matchDate": match_date,  # <— daily revenue
+                "matchDate": match_date,  #  daily revenue
                 "createdAt": created_at_iso,
-
                 # optional: kad gražiai rodyt per match
                 "team1": match_doc.get("team1", {}).get("name") if match_doc else team1,
                 "team2": match_doc.get("team2", {}).get("name") if match_doc else team2,
@@ -494,6 +502,7 @@ def register_es_routes(app):
         date_from = request.args.get("from")
         date_to = request.args.get("to")
 
+        #tikrina siuos laukus, matchDate (kad galėtų dėti į dienas), match_id (kad galėtų grupuoti pagal match ir atmesti “nesusietus” betus)
         filt = [{"exists": {"field": "matchDate"}}, {"exists": {"field": "match_id"}}]
 
         if date_from or date_to:
@@ -505,24 +514,28 @@ def register_es_routes(app):
         query = {"bool": {"filter": filt}}
 
         aggs = {
+            #grupuoja pagal dieną
             "per_day": {
+                #grupuoja dokumentus pagal datą
                 "date_histogram": {
                     "field": "matchDate",
                     "calendar_interval": "day",
                     "format": "yyyy-MM-dd",
-                    "min_doc_count": 1
+                    "min_doc_count": 1 #bent vienas dokumentas tai dienai
                 },
+                #kiekvienoje dienoje paskaičiuoja
                 "aggs": {
                     "total_stake": {"sum": {"field": "stake"}},
                     "total_owed": {"sum": {"field": "companyOwed"}},
                     "bet_count": {"value_count": {"field": "bet_id"}},
-
+                    #dienos viduje grupuoja pagal matchą
                     "by_match": {
                         "terms": {"field": "match_id", "size": 1000},
                         "aggs": {
                             "stake": {"sum": {"field": "stake"}},
                             "owed": {"sum": {"field": "companyOwed"}},
                             "bet_count": {"value_count": {"field": "bet_id"}},
+                            #duomeu paeimimas
                             "sample": {"top_hits": {"size": 1, "_source": ["team1", "team2", "sport", "matchDate"]}}
                         }
                     }
@@ -530,7 +543,7 @@ def register_es_routes(app):
             }
         }
 
-        res = es.search(index=BETS_INDEX, query=query, aggs=aggs, size=0)
+        res = es.search(index=BETS_INDEX, query=query, aggs=aggs, size=0) #size=0 reiškia: negrąžink dokumentų
 
         items = []
         for day in res["aggregations"]["per_day"]["buckets"]:
